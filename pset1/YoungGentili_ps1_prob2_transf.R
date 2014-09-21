@@ -113,8 +113,9 @@ ll_L = function(par, G, theta_H, X) {
 # Theta_H,j for j=1,...,P
 gomMLE = function(X, G0, theta0) {
   curr.value = -Inf
-  counter = 1
-  epsilon = 1e-3
+  NUM_ITER = 1
+  EPSILON = 0.1
+  MAX_ITER = 20
   theta_H = theta0$H
   theta_L = theta0$L
 
@@ -125,10 +126,10 @@ gomMLE = function(X, G0, theta0) {
   theta_L = u_to_x_theta(theta0$L)
 
   repeat  {
-    trace = 6
+    trace = 3
     lower = 0
-    upper = 10
-    print('Iteration: '%+%counter)
+    upper = 100
+    print('ITERATION: '%+%NUM_ITER)
     # Need to flatten all parameters before passing to optim
     print('Optimizing over G...')
     res = optim(par=as.vector(t(G0)), fn=ll_g, method='L-BFGS-B', lower=lower, upper=upper,
@@ -148,22 +149,22 @@ gomMLE = function(X, G0, theta0) {
     theta_H = relist(res$par, sk)
 
     # Stop coordinate ascent if our log-likelihood function stops increasing by a factor of > epsilon
-    if (res$value - curr.value < epsilon) {
+    # or if we exceed a maximum number of iterations
+    if (res$value - curr.value < EPSILON || NUM_ITER > MAX_ITER) {
       print('And we are done!')
       print(c(curr.value, res$value))
       break
     }
     curr.value = res$value
     print("Current value: "%+%curr.value)
-    counter = counter + 1
+    NUM_ITER = NUM_ITER + 1
   }
-
-  # return to simplex
   G0 = x_to_u_g(G0)
   theta_H = x_to_u_theta(theta_H)
   theta_L = x_to_u_theta(theta_L)
-
-  return(list(G.hat=G0, theta.hat=list(H=theta_H, L=theta_L), maxlik=curr.value))
+  mles = list(G.hat=G0, theta.hat=list(H=theta_H, L=theta_L), maxlik=curr.value)
+  save(mles, files='mles.RData')
+  return(mles)
 }
 
 data1985 = read.delim("data1985_area2.csv", stringsAsFactors=FALSE)

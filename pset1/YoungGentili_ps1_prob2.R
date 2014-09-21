@@ -2,7 +2,7 @@
 
 # optimize ll function over g
 ll_g = function(par, theta_H, theta_L, X) {
-  G = matrix(par, ncol=2)
+  G = matrix(par, ncol=2, byrow=TRUE)
   N = dim(G)[1]
   P = length(theta_H)
 
@@ -150,6 +150,7 @@ theta0$L = lapply(theta0List, function(x){
 theta0$H[[6]] = c(.7,.28,.01,.01)
 theta0$H[[7]] = c(.7,.27,.01,.01,.01)
 theta0$H[[46]] = c(.01,.35,.35,.05,.08,.06,.09,.01)
+theta0$H[[49]] = c(.44,.01,.11,.43,.01)
 theta0$L[[7]] = c(.2,.39,.39,.01,.01)
 
 # Decrease first element of each probability by .001 so we don't start on the boundary
