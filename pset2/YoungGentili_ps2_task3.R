@@ -22,9 +22,9 @@ thetas = lapply(params, function(param){
 })
 
 # create list of 4 to store coverage for each set of parameters
-coverage = list(rep(NA), 4)
+coverage = list(rep(NULL), 4)
 for (m in 1:M) {
-  print('Rep: '%+%m)
+  print('Rep: '%+%m%+%', job.id: '%+%job.id)
   # Then you will repeatedly draw Y | Theta for a set of simulations
   Ys = lapply(thetas, function(theta){
     simYgivenTheta(theta, w, N)
