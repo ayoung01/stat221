@@ -19,7 +19,7 @@ thetas = lapply(params, function(param){
   mu = param[1]
   sd = param[2]
   DrawTheta(J, mu, sd)
-}
+})
 
 # create list of 4 to store coverage for each set of parameters
 coverage = list(rep(NA), 4)

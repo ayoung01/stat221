@@ -9,4 +9,4 @@
 #SBATCH -N 1 #All cores on one machine
 
 # 1st argument = job id
-Rscript YoungGentili_ps_task3.R $SLURM_ARRAY_TASK_ID
+Rscript YoungGentili_ps2_task3.R $SLURM_ARRAY_TASK_ID
