@@ -1,6 +1,5 @@
 `%+%` <- function(x,y) paste(x,y,sep="")
 
-
 # Task 2 ------------------------------------------------------------------
 
 simYgivenTheta = function(theta, w, n) {
@@ -28,7 +27,7 @@ CalculateCoverage = function(Theta.true, logTheta.matrix) {
   #
   # Returns:
   #   J x 3 vector
-  #   First column contains logTheta values, rounded to 1st decimal place
+  #   First column contains logTheta values
   #   Second column contains 1 if true value is in 68% interval, else 0
   #   Third column contains 1 if true value is in 95% interval, else 0
 
@@ -46,6 +45,6 @@ CalculateCoverage = function(Theta.true, logTheta.matrix) {
       res[j, i] = as.numeric(logTheta.true[j] > lower && logTheta.true[j] < upper)
     }
   }
-  res = cbind(round(logTheta.true), res)
+  res = cbind(logTheta.true, res)
   return(res)
 }
