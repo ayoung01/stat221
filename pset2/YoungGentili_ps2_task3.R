@@ -2,7 +2,7 @@ source('poissonLogN_MCMC.R')
 source('YoungGentili_ps2_functions.R')
 
 args <- as.numeric(commandArgs(trailingOnly = TRUE))
-if(length(args) != 1) {
+if(length(args) != 2) {
   stop("Not correct no. of args")
 }
 M = args[1] # number of Ys to draw
