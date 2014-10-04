@@ -22,7 +22,7 @@ thetas = lapply(params, function(param){
 })
 
 # create list of 4 to store coverage for each set of parameters
-coverage = list(rep(NULL, 4))
+coverage = list(rep(NA, 4))
 for (m in 1:M) {
   print('Rep: '%+%m%+%', job.id: '%+%job.id)
   # Then you will repeatedly draw Y | Theta for a set of simulations
@@ -37,13 +37,12 @@ for (m in 1:M) {
   # 38.732   3.729  42.477
   # It takes roughly 10.5 seconds to run MCMC
   for (i in 1:length(mcmc)) {
-    if (is.null(coverage[[i]])) {
-      coverage[[i]] = CalculateCoverage(thetas[[i]], mcmc[[i]]$logTheta)
-    } else {
-      coverage[[i]] = rbind(coverage[[i]], CalculateCoverage(thetas[[i]], mcmc[[i]]$logTheta))
-    }
+    coverage[[i]] = rbind(coverage[[i]], CalculateCoverage(thetas[[i]], mcmc[[i]]$logTheta))
   }
 }
-
+# Remove first row of NAs
+coverage = lapply(coverage, function(x){
+  return(x[-1,])
+})
 save(coverage, file=sprintf("odyssey/coverage_%d.rda", job.id))
 
