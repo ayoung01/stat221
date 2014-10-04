@@ -37,7 +37,7 @@ for (m in 1:M) {
   # 38.732   3.729  42.477
   # It takes roughly 10.5 seconds to run MCMC
   for (i in 1:length(mcmc)) {
-    coverage[[m]] = rbind(coverage[[m]], CalculateCoverage(thetas[[i]], mcmc[[i]]$logTheta))
+    coverage[[i]] = rbind(coverage[[i]], CalculateCoverage(thetas[[i]], mcmc[[i]]$logTheta))
   }
 }
 
