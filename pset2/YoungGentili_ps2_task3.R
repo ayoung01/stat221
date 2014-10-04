@@ -5,9 +5,9 @@ args <- as.numeric(commandArgs(trailingOnly = TRUE))
 if(length(args) != 1) {
   stop("Not correct no. of args")
 }
-job.id = args[1]
+M = args[1] # number of Ys to draw
+job.id = args[2]
 
-M = 80 # number of Ys to draw
 J = 1000
 w = rep(1, J)
 N = 2

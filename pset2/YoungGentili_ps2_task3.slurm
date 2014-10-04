@@ -4,9 +4,11 @@
 #SBATCH -e all.err #Standard error
 #SBATCH -p general #Partition
 #SBATCH -t 01:00:00 #Running time of 1 hour
-#SBATCH --mem-per-cpu 3000 #Memory request
+#SBATCH --mem-per-cpu 4000 #Memory request
 #SBATCH -n 1 #Number of cores
 #SBATCH -N 1 #All cores on one machine
 
-# 1st argument = job id
-Rscript YoungGentili_ps2_task3.R $SLURM_ARRAY_TASK_ID
+# 1st argument = M (number of Ys to generate per node)
+# 2nd argument = job id
+# sbatch --array=1-12 YoungGentili_ps2_task3.slurm
+Rscript YoungGentili_ps2_task3.R 1 $SLURM_ARRAY_TASK_ID
