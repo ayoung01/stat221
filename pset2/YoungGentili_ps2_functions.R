@@ -1,3 +1,6 @@
+`%+%` <- function(x,y) paste(x,y,sep="")
+
+
 # Task 2 ------------------------------------------------------------------
 
 simYgivenTheta = function(theta, w, n) {
