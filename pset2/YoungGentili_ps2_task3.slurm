@@ -11,4 +11,4 @@
 # 1st argument = M (number of Ys to generate per node)
 # 2nd argument = job id
 # sbatch --array=1-12 YoungGentili_ps2_task3.slurm
-Rscript YoungGentili_ps2_task3.R 1 $SLURM_ARRAY_TASK_ID
+Rscript YoungGentili_ps2_task3.R 50 $SLURM_ARRAY_TASK_ID
