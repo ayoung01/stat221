@@ -19,7 +19,7 @@ types = c("logTheta.true", "w")
 for(t in types) {
   for(i in 1:length(totalCoverage)) {
     dat = data.frame( totalCoverage[[i]] )
-    if( types == "w" ) {
+    if( t == "w" ) {
       dat$bucket = round(log(dat[[t]]), 1)
     } else {
       dat$bucket = round(dat[[t]], 1)
