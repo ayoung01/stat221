@@ -15,21 +15,35 @@ for(file in output.files) {
   }
 }
 
-aggdata = list()
-pdf("SampleGraphs.pdf",width=7,height=5)
-for(i in 1:length(totalCoverage)) {
-  dat = data.frame( totalCoverage[[i]] )
-  dat$bucket = round(dat$logTheta.true, 1)
-  aggdata[[i]] = aggregate(dat, by=list(key=dat$bucket),
-                      FUN="mean", na.rm=TRUE)
-  x = aggdata[[i]]$bucket
-  y1 = aggdata[[i]]$sd1
-  y2 = aggdata[[i]]$sd2
-  plot( x, y1, main=sprintf("68pct coverage%d", i), xlab="log(theta)", ylab="coverage")
-  lo = loess(y1~x)
-  lines(x, predict(lo), col='red', lwd=2)
-  plot( x, y2, main=sprintf("95pct coverage%d", i), xlab="log(theta)", ylab="coverage")
-  lo = loess(y2~x)
-  lines(x, predict(lo), col='red', lwd=2)
+types = c("logTheta.true", "w")
+for(t in types) {
+  for(i in 1:length(totalCoverage)) {
+    dat = data.frame( totalCoverage[[i]] )
+    if( types == "w" ) {
+      dat$bucket = round(log(dat[[t]]), 1)
+    } else {
+      dat$bucket = round(dat[[t]], 1)
+    }
+
+    aggdata = aggregate(dat, by=list(key=dat$bucket),
+                        FUN="mean", na.rm=TRUE)
+
+    x = aggdata$bucket
+    y1 = aggdata$sd1
+    y2 = aggdata$sd2
+
+
+    png(sprintf("YoungGentili_ps2_task4_plot%d_%s.png", i, t))
+    par(mfrow=c(2, 1))
+    plot( x, y1, main=sprintf("68pct coverage%d", i), xlab=t, ylab="coverage")
+    lo = loess(y1~x)
+    lines(x, predict(lo), col='red', lwd=2)
+    plot( x, y2, main=sprintf("95pct coverage%d", i), xlab=t, ylab="coverage")
+    lo = loess(y2~x)
+    lines(x, predict(lo), col='red', lwd=2)
+    dev.off()
+    keeps = c("key","sd1","sd2")
+    aggdata = subset(aggdata, select = keeps)
+    save(aggdata, file=sprintf("YoungGentili_ps2_task4_par%d_%s.dat", i, t))
+  }
 }
-dev.off()
