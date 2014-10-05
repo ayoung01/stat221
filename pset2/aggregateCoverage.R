@@ -10,7 +10,7 @@ for(file in output.files) {
     totalCoverage = coverage
     created = TRUE
   }
-  for(i in numTests) {
+  for(i in length(totalCoverage)) {
     totalCoverage[[i]] = rbind(totalCoverage[[i]], coverage[[i]])
   }
 }
