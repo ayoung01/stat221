@@ -1,12 +1,13 @@
+#aggregate data from cluster machines to get coverages
+
 output.files = list.files("odyssey", full.names=T, pattern="rda")
-A <- c()
-numTests = 4
+
 totalCoverage = list()
 created = FALSE
 for(file in output.files) {
   load(file)
   if( !created ) {
-    totalCoverage = coverage[[i]]
+    totalCoverage = coverage
     created = TRUE
   }
   for(i in numTests) {
@@ -15,14 +16,20 @@ for(file in output.files) {
 }
 
 aggdata = list()
-for(i in numTests) {
-  x = data.frame( totalCoverage[[i]] )
-  x$bucket = round(x$logTheta.true, 2)
-
-  aggdata[[i]] = aggregate(x, by=list(key=x$bucket),
+pdf("SampleGraphs.pdf",width=7,height=5)
+for(i in 1:length(totalCoverage)) {
+  dat = data.frame( totalCoverage[[i]] )
+  dat$bucket = round(dat$logTheta.true, 1)
+  aggdata[[i]] = aggregate(dat, by=list(key=dat$bucket),
                       FUN="mean", na.rm=TRUE)
-  pdf(sprintf("SampleGraph%d.pdf", i),width=7,height=5)
-  plot(aggdata[[i]]$bucket, aggdata[[i]]$sd1, main="68% coverage", xlab="log(theta)", ylab="coverage")
-  plot(aggdate[[i]]$bucket, aggdata[[i]]$sd2, main="95% coverage", xlab="log(theta)", ylab="coverage")
-  dev.off()
+  x = aggdata[[i]]$bucket
+  y1 = aggdata[[i]]$sd1
+  y2 = aggdata[[i]]$sd2
+  plot( x, y1, main=sprintf("68pct coverage%d", i), xlab="log(theta)", ylab="coverage")
+  lo = loess(y1~x)
+  lines(x, predict(lo), col='red', lwd=2)
+  plot( x, y2, main=sprintf("95pct coverage%d", i), xlab="log(theta)", ylab="coverage")
+  lo = loess(y2~x)
+  lines(x, predict(lo), col='red', lwd=2)
 }
+dev.off()
