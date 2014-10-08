@@ -42,6 +42,8 @@ CalculateCoverage = function(Theta.true, logTheta.matrix) {
     for (j in 1:J) {
       lower = quantile(logTheta.matrix[j, ], (1-prob[i])/2)
       upper = quantile(logTheta.matrix[j, ], (1+prob[i])/2)
+      print('Posterior mean: '%+%mean(logTheta.matrix[j,]))
+      print('Posterior sd: '%+%sd(logTheta.matrix[j,]))
       res[j, i] = as.numeric(logTheta.true[j] > lower && logTheta.true[j] < upper)
     }
   }
