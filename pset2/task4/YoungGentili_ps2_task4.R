@@ -46,5 +46,5 @@ coverage = lapply(coverage, function(x){
   return(x)
 })
 names(coverage) = as.character(params) # add parameter info
-save(coverage, file=sprintf("odyssey/coverage_%d.rda", job.id))
+save(coverage, file=sprintf("out/coverage_%d.rda", job.id))
 
