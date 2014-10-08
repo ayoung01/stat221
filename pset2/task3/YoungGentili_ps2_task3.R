@@ -46,5 +46,5 @@ coverage = lapply(coverage, function(x){
   colnames(x) = c('logTheta.true', 'sd1','sd2')
   return(x)
 })
-save(coverage, file=sprintf("odyssey/coverage_%d.rda", job.id))
+save(coverage, file=sprintf("out/coverage_%d.rda", job.id))
 

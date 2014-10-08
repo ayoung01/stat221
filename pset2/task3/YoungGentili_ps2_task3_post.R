@@ -1,6 +1,6 @@
 #aggregate data from cluster machines to get coverages
 
-output.files = list.files("odyssey", full.names=T, pattern="rda")
+output.files = list.files("out", full.names=T, pattern="rda")
 
 totalCoverage = list()
 created = FALSE
