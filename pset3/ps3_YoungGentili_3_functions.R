@@ -80,6 +80,9 @@ sgd <- function(data, implicit=F) {
   for(i in 1:n) {
     xi = data$X[i, ]
     yi = data$y[i]
+    # TODO: compute learning rate
+    #     you will need to compute the eigenvalues of E(x_nx′n) and then take λ0,γ0 etc.
+    #     You can either do this analytically or empirically.
     ai = gamma0 / (1 + gamma0 * lambda0 * i)
     lpred = sum(theta.old * xi)
     if (implicit) {
