@@ -22,7 +22,7 @@ do
 		for rho in "${rhos[@]}"
 		do
 			echo "#!/bin/sh" > cmds/${n}_${p}_${rho}.sh
-			echo "Rscript ps3_YoungGentili_3.R ${n}$ ${p} ${rho} 3" >> cmds/${n}_${p}_${rho}.sh
+			echo "Rscript ps3_YoungGentili_3.R ${n} ${p} ${rho} 3" >> cmds/${n}_${p}_${rho}.sh
 			cat cmds/${n}_${p}_${rho}.sh | sbatch
 		done
 	done
