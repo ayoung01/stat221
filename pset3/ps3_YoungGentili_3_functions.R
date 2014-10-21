@@ -134,7 +134,7 @@ run.timings <- function(rho.values = c(0.0, 0.1, 0.2, 0.5, 0.9, 0.95),
 # Will submit this to Odyssey
 run.timing <- function(rho, nreps, n, p, glmnet=T, sgd=T, sgd.implicit=T) {
   ## Runs glmnet() for various param values.
-  ## method: 0 = glmnet, 1 = sgd, 2 = implicit sgd
+  ## method: 0 = glmnet (naive), 1=glmnet (covariance), 2 = sgd, 3 = implicit sgd
   cols = c("method", "n", "p", "rho", "rep", "time", "mse")
   timings = matrix(nrow=0, ncol=length(cols))
   colnames(timings) <- cols
@@ -160,12 +160,17 @@ run.timing <- function(rho, nreps, n, p, glmnet=T, sgd=T, sgd.implicit=T) {
       timings = rbind(timings, c(0, n, p, rho, i,
                                  glmnet.time,
                                  glmnet.mse))
+      glmnet.time = system.time({ glmnet.fit = glmnet(x, y,alpha=1, standardize=FALSE, type.gaussian="covariance")})[1]
+      glmnet.mse = median(apply(glmnet.fit$beta, 2, function(est) dist(est, true.theta)))
+      timings = rbind(timings, c(1, n, p, rho, i,
+                                 glmnet.time,
+                                 glmnet.mse))
     }
     # 3. Run the sgd method and tabulate timing
     if (sgd) {
       sgd.time = system.time({ sgd.est = sgd(dataset)})[1]
       sgd.mse = dist(sgd.est, true.theta)
-      timings = rbind(timings, c(1, n, p, rho, i,
+      timings = rbind(timings, c(2, n, p, rho, i,
                                  sgd.time,
                                  sgd.mse))
     }
@@ -173,7 +178,7 @@ run.timing <- function(rho, nreps, n, p, glmnet=T, sgd=T, sgd.implicit=T) {
     if (sgd.implicit) {
       sgd.implicit.time = system.time({ sgd.est = sgd(dataset, implicit=T)})[1]
       sgd.implicit.mse = dist(sgd.est, true.theta)
-      timings = rbind(timings, c(2, n, p, rho, i,
+      timings = rbind(timings, c(3, n, p, rho, i,
                                  sgd.implicit.time,
                                  sgd.implicit.mse))
     }

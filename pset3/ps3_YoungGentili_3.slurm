@@ -10,6 +10,7 @@
 #SBATCH --mail-user=albert.t.young@gmail.com  #Email to which notifications will be sent
 
 mkdir out
+mkdir cmds
 ns=(100, 1000, 5000, 1e4, 1e5, 1e6)
 ps=(100, 1000, 5000, 20000, 50000)
 rhos=(0, 0.1, 0.2, 0.5, 0.9, 0.95)
@@ -20,7 +21,8 @@ do
 	do
 		for rho in "${rhos[@]}"
 		do
-			Rscript ps3_YoungGentili_3.R $n $p $rho 3
+			echo "Rscript ps3_YoungGentili_3.R ${n}$ ${p} ${rho} 3" > cmds/${n}_${p}_${rho}.sh
+			cat cmds/${n}_${p}_${rho}.sh | sbatch
 		done
 	done
 done
