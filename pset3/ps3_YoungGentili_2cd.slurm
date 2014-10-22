@@ -2,7 +2,7 @@
 
 mkdir 2cd
 mkdir 2cd_cmds
-ns=(100 1000 5000 1e4 1e5 1e6)
+ns=(100 500 1000 2500 1e4 1e5 1e6)
 alphas=(1e-4 1e-3 1e-2 0.1 0.5 1 10 20 50 100)
 
 for n in "${ns[@]}"
