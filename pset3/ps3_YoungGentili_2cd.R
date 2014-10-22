@@ -7,11 +7,14 @@ if(length(args) != 2) {
 n = args[1]
 alpha = args[2]
 
-res.sgd = run.sgd.2cd(nreps=100, alpha=alpha, n=n, p=100)
-res.asgd = run.sgd.2cd(nreps=100, alpha=alpha, n=n, p=100)
-res.implicit = run.sgd.2cd(nreps=100, alpha=alpha, n=n, p=100)
+n=100
+alpha=10
+
+res.sgd = c('sgd', run.sgd.2cd(nreps=100, alpha=alpha, n=n, p=100))
+res.asgd = c('asgd', run.sgd.2cd(nreps=100, alpha=alpha, n=n, p=100))
+res.implicit = c('implicit', run.sgd.2cd(nreps=100, alpha=alpha, n=n, p=100))
 res = rbind(res.sgd, res.asgd, res.implicit)
-colnames(res) = c('bias', 'variance')
+colnames(res) = c('method', 'n', 'alpha', 'bias', 'variance')
 write.table(res, file=sprintf("2cd/%.0f_%.0f.txt", n, alpha),
             row.names=FALSE, quote=FALSE)
 

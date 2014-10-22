@@ -234,7 +234,6 @@ run.sgd.2cd <- function(nreps, alpha, n=10000, p=100, asgd=F, implicit=F) {
   A = generate.A(p)
   # matrix of the last iterate theta_n
   thetas = sim.theta.sgd(n=n, p=p, alpha=alpha, nreps=nreps, A=A, asgd=asgd, implicit=implicit)
-  browser()
   # compute variance
   empirical.var = (1 / lr(alpha, n)) * cov(thetas)
   var.trace = sum(diag(empirical.var))
@@ -244,7 +243,7 @@ run.sgd.2cd <- function(nreps, alpha, n=10000, p=100, asgd=F, implicit=F) {
   theta.avg = rowMeans(thetas)
   bias = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
 
-  return(c(bias, var.trace))
+  return(c(n, alpha, bias, var.trace))
 }
 
 # returns p x nreps matrix of final sgd theta values
