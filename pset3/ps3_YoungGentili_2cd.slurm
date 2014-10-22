@@ -9,7 +9,7 @@ for n in "${ns[@]}"
 do
 	for alpha in "${alphas[@]}"
 	do
-		echo "#!/bin/sh" > cmds/${n}_${p}_${rho}.sh
+		echo "#!/bin/sh" > 2cd_cmds/${n}_${alpha}.sh
 		echo '#SBATCH -J ps3_2cd # name for job array' >> 2cd_cmds/${n}_${alpha}.sh
 		echo '#SBATCH -o all.out #Standard output' >> 2cd_cmds/${n}_${alpha}.sh
 		echo '#SBATCH -e all.err #Standard error' >> 2cd_cmds/${n}_${alpha}.sh
