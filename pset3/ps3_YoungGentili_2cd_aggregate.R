@@ -4,12 +4,12 @@ cols = c("method", "n", "p", "rho", "rep", "time", "mse")
 timings = matrix(nrow=0, ncol=length(cols))
 colnames(timings) <- cols
 rownames(timings) = NULL
-dir = 'out_old'
+dir = '2cd'
 
 for (dir in dir) {
   output.files = list.files(dir, full.names=T)
   for(file in output.files) {
-    d = read.table(file, header=TRUE, quote="\"", stringsAsFactors=FALSE)
+    d = read.table(file, header=TRUE, quote="\"", stringsAsFactors=TRUE)
     timings = rbind(timings, d)
   }
 }
