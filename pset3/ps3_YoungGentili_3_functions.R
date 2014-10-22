@@ -158,6 +158,6 @@ run.timing <- function(rho, nreps, n, p) {
   }
   return(timings)
 }
-#
+
 # timings = run.timings(ns=1e3, nrep=1, ps=1e3, rho.values=.95)
 # View(timings)

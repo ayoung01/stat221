@@ -1,7 +1,7 @@
 source('ps3_YoungGentili_2_functions.R')
 
 args <- as.numeric(commandArgs(trailingOnly = TRUE))
-if(length(args) != 4) {
+if(length(args) != 2) {
   stop("Not correct no. of args")
 }
 n = args[1]
