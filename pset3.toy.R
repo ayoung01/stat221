@@ -45,8 +45,11 @@ S = matrix(0, nrow=p, ncol=p)
 for (i in 1:n) {
   xi = mat[i, ]
 
-  var.sum = var.sum + var(xi)
+
   S = S + xi%*%t(xi)
+}
+for (i in 1:p) {
+  var.sum = var.sum + var(mat[,i])
 }
 S.avg = S/n
 

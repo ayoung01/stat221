@@ -57,15 +57,13 @@ sgd <- function(data, implicit=F) {
   # params for the learning rate seq.
   lambda0 = 0.01
   theta.old = rep(0, p)
-  S = matrix(0, nrow=p, ncol=p)
+  var.sum = 0
   # compute learning rate
   # compute the eigenvalues of E(x_nx′n) empirically.
-  for (i in 1:n) {
-    xi = data$X[i, ]
-    S = S + xi%*%t(xi)
+  for (i in 1:p) {
+    var.sum = var.sum + var(data$X[, i])
   }
-  eigenvalue.sum = sum(eigen(S / n, only.values=T)$values)
-  gamma0 = 1 / eigenvalue.sum
+  gamma0 = 1 / var.sum
 
   for (i in 1:n) {
     xi = data$X[i, ]
@@ -160,6 +158,6 @@ run.timing <- function(rho, nreps, n, p) {
   }
   return(timings)
 }
-
-timings = run.timings(ns=1e2, nrep=1, ps=1e3, rho.values=.95)
-View(timings)
+#
+# timings = run.timings(ns=1e3, nrep=1, ps=1e3, rho.values=.95)
+# View(timings)
