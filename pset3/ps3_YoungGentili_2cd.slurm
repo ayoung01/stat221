@@ -10,14 +10,14 @@ do
 	for alpha in "${alphas[@]}"
 	do
 		echo "#!/bin/sh" > cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH -J ps3_3 # name for job array' >> cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH -o all.out #Standard output' >> cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH -e all.err #Standard error' >> cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH -p serial_requeue #Partition' >> cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH --mem-per-cpu 4096 #Memory request' >> cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH -n 1 #Number of cores' >> cmds/${n}_${p}_${rho}.sh
-		echo '#SBATCH -N 1 #All cores on one machine' >> cmds/${n}_${p}_${rho}.sh
-		echo "Rscript ps3_YoungGentili_3.R ${n} ${p} ${rho} 3" >> cmds/${n}_${p}_${rho}.sh
-		cat cmds/${n}_${p}_${rho}.sh | sbatch
+		echo '#SBATCH -J ps3_3 # name for job array' >> 2cd_cmds/${n}_${alpha}.sh
+		echo '#SBATCH -o all.out #Standard output' >> 2cd_cmds/${n}_${alpha}.sh
+		echo '#SBATCH -e all.err #Standard error' >> 2cd_cmds/${n}_${alpha}.sh
+		echo '#SBATCH -p serial_requeue #Partition' >> 2cd_cmds/${n}_${alpha}.sh
+		echo '#SBATCH --mem-per-cpu 4096 #Memory request' >> 2cd_cmds/${n}_${alpha}.sh
+		echo '#SBATCH -n 1 #Number of cores' >> 2cd_cmds/${n}_${alpha}.sh
+		echo '#SBATCH -N 1 #All cores on one machine' >> 2cd_cmds/${n}_${alpha}.sh
+		echo "Rscript ps3_YoungGentili_2cd.R ${n} ${alpha}" >> 2cd_cmds/${n}_${alpha}.sh
+		cat 2cd_cmds/${n}_${alpha}.sh | sbatch
 	done
 done

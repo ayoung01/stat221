@@ -64,8 +64,7 @@ sgd <- function(data, implicit=F) {
     xi = data$X[i, ]
     S = S + xi%*%t(xi)
   }
-  browser()
-  eigenvalue.sum = sum(eigen(S / i, only.values=T)$values)
+  eigenvalue.sum = sum(eigen(S / n, only.values=T)$values)
   gamma0 = 1 / eigenvalue.sum
 
   for (i in 1:n) {

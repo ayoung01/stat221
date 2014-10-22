@@ -283,7 +283,7 @@ sim.theta.sgd <- function(n, p, alpha, nreps, A, asgd=F, implicit=F) {
 
 # res = run.sgd.2cd(nreps=100, alpha=100, n=100, p=100)
 # res = run.sgd.2cd(nreps=100, alpha=100, n=100, p=100, implicit=T)
-# res = run.sgd.2cd(nreps=100, alpha=100, n=100, p=100, asgd=T)
+# res = run.sgd.2cd(nreps=100000, alpha=100, n=100, p=1000, asgd=T)
 # res
 
 # 2e ----------------------------------------------------------------------
