@@ -229,107 +229,69 @@ batch.sgd.2b <- function(data) {
 # 2cd ---------------------------------------------------------------------
 
 
-# computes bias and trace of the empirical variance matrix for a given n, alpha combination
-run.sgd.2cd <- function(nreps, alpha, n=10000, p=100, asgd=F, implicit=F) {
+run.sgd.2cd <- function(alpha, n=1e5, p=100, asgd=F, implicit=F, verbose=T) {
   A = generate.A(p)
-  # matrix of the last iterate theta_n
-  thetas = sim.theta.sgd(n=n, p=p, alpha=alpha, nreps=nreps, A=A, asgd=asgd, implicit=implicit)
-  # compute variance
-  empirical.var = (1 / lr(alpha, n)) * cov(thetas)
-  var.trace = sum(diag(empirical.var))
+  data = sample.data(n, A)
 
-  # compute bias
-  true.theta = matrix(1, ncol=1, nrow=p)
-  theta.avg = rowMeans(thetas)
-  bias = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
+  trace = sum(diag(data$A))
+  theta.sgd = matrix(0, nrow=n, ncol=p)
+  for (i in 1:n-1) {
+    if (n %% 1000 == 0 && verbose) {
+      print(n)
+    }
+    theta.old = theta.sgd[, i]
+    xi = data$X[i, ]
+    ai = alpha / (alpha * trace + i)
+    lpred = sum(theta.old * xi)
+    yi = data$Y[i]
+    theta.new = theta.old + ai * (yi - lpred) * xi
+    if (asgd) { # ASGD
+      theta.new = (1 - 1/i)*theta.old + 1/i * ai * (yi - lpred) * xi
+    }
+    if (implicit) { # Implicit
+      ai = lr(alpha, i)
+      xi.norm = sum(xi^2)
+      fi = 1 / (1 + ai * sum(xi^2))
+      theta.new = (theta.old  - ai * fi * lpred * xi) +
+        (ai * yi * xi - ai^2 * fi * yi * xi.norm * xi)
+    }
+    theta.sgd[, i+1] = theta.new
+  }
+  return(theta.sgd)
+#   # compute variance
+#   empirical.var = (1 / lr(alpha, n)) * cov(thetas)
+#   var.trace = sum(diag(empirical.var))
+#
+#   # compute bias
+#   true.theta = matrix(1, ncol=1, nrow=p)
+#   theta.avg = rowMeans(thetas)
+#   bias = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
 
-  return(c(n, alpha, bias, var.trace))
 }
 
 # returns p x nreps matrix of final sgd theta values
-sim.theta.sgd <- function(n, p, alpha, nreps, A, asgd=F, implicit=F) {
-  res = matrix(0, nrow=p, ncol=nreps)
-  for (nrep in 1:nreps) {
-    data = sample.data(n, A)
-    n = nrow(data$X)
-    p = ncol(data$X)
-    # matrix of estimates of SGD (p x iters)
-    trace = sum(diag(data$A))  # NOTE: data snooping.
+sim.theta.sgd <- function(n, p, alpha, A, asgd=F, implicit=F) {
 
-    theta.old = rep(0, p)
-    for (i in 1:n) {
-      xi = data$X[i, ]
-      ai = alpha / (alpha * trace + i)
-      lpred = sum(theta.old * xi)
-      yi = data$Y[i]
-      theta.new = theta.old + ai * (yi - lpred) * xi
-      if (asgd) { # ASGD
-        theta.new = (1 - 1/i)*theta.old + 1/i * ai * (yi - lpred) * xi
-      }
-      if (implicit) { # Implicit
-        ai = lr(alpha, i)
-        xi.norm = sum(xi^2)
-        fi = 1 / (1 + ai * sum(xi^2))
-        theta.new = (theta.old  - ai * fi * lpred * xi) +
-          (ai * yi * xi - ai^2 * fi * yi * xi.norm * xi)
-      }
-      theta.old = theta.new
-    }
-    res[, nrep] = theta.new
-  }
-  return(res)
 }
-
-# res = run.sgd.2cd(nreps=100, alpha=100, n=100, p=100)
-# res = run.sgd.2cd(nreps=100, alpha=100, n=100, p=100, implicit=T)
-# res = run.sgd.2cd(nreps=100000, alpha=100, n=100, p=1000, asgd=T)
-# res
 
 # 2e ----------------------------------------------------------------------
 
-run.sgd.many <- function(nreps, alpha,
-                         nlist=as.integer(seq(100, 1e5, length.out=10)),
+run.sgd.2e <- function(nreps, alpha, n, implicit=F, asgd=F,
                          p=10, verbose=F) {
-  ## Run SGD (implicit) with multiple n(=SGD iterations)
-  #
-  # Example:
-  #   run.sgd.many(nreps=1000, alpha=2, p=4)
-  #
-  # Plots || Empirical variance - Theoretical ||
+  # Calculates || Empirical variance - Theoretical ||
   #
   A = generate.A(p)
-  dist.list = c()  # vector of || . || distances
-  for(n in nlist) {
-    # matrix of the last iterate theta_n
-    last.theta = matrix(NA, nrow=0, ncol=p)
-    # Compute theoretical variance
-    data0 = sample.data(n, A)
-    I = diag(p)
-    Sigma.theoretical <- alpha * solve(2 * alpha * A - I) %*% A
-    stopifnot(all(eigen(Sigma.theoretical)$values > 0))
 
-    # Get many replications for each n
-    for(j in 1:nreps) {
-      data = sample.data(n, A)
-      out = sgd(data, alpha, plot=F)
-      # Every replication stores the last theta_n
-      last.theta <- rbind(last.theta, out[, n])
-    }
+  # Compute theoretical variance
+  I = diag(p)
+  Sigma.theoretical <- alpha * solve(2 * alpha * A - I) %*% A
+  stopifnot(all(eigen(Sigma.theoretical)$values > 0))
 
-    print(sprintf("n = %d", n))
-    print("Avg. estimates for theta*")
-    print(colMeans(last.theta))
-    # Store the distance.
-    empirical.var = (1 / lr(alpha, n)) * cov(last.theta)
-    if(verbose) {
-      print("Empirical variance")
-      print(round(empirical.var, 4))
-      print("Theoretical ")
-      print(round(Sigma.theoretical,4))
-    }
-    dist.list <- c(dist.list, sqrt.norm(empirical.var - Sigma.theoretical))
-    plot(dist.list, type="l")
-    print("Vector of ||empirical var.  - theoretical var.||")
-    print(dist.list)
-  }
+  # Get many replications for each n
+  thetas = sim.theta.sgd(n=n, p=p, alpha=alpha, nreps=nreps, A=A, asgd=asgd, implicit=implicit)
+  # Calculate empirical variance
+  empirical.var = (1 / lr(alpha, n)) * cov(thetas)
+
+  dist = sqrt.norm(empirical.var - Sigma.theoretical)
+  return(dist)
 }

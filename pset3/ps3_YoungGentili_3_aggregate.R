@@ -4,7 +4,7 @@ cols = c("method", "n", "p", "rho", "rep", "time", "mse")
 timings = matrix(nrow=0, ncol=length(cols))
 colnames(timings) <- cols
 rownames(timings) = NULL
-dir = 'out_old'
+dir = 'out'
 
 for (dir in dir) {
   output.files = list.files(dir, full.names=T)
@@ -26,16 +26,35 @@ avg$method[avg$method==2] = 'sgd (standard)'
 avg$method[avg$method==3] = 'sgd (implicit)'
 avg$method = as.factor(avg$method)
 avg$rho = as.factor(avg$rho)
-table1 = with(avg, subset(avg, n==1000 & p==100))
-table2 = with(avg, subset(avg, n==5000 & p==100))
-table3 = with(avg, subset(avg, n==100 & p==1000))
-table4 = with(avg, subset(avg, n==100 & p==5000))
-table5 = with(avg, subset(avg, n==100 & p==20000))
-table6 = with(avg, subset(avg, n==100 & p==50000))
 
-latex(tabular( method ~ rho*time*identity, data=table1))
-latex(tabular( method ~ rho*time*identity, data=table2))
-latex(tabular( method ~ rho*time*identity, data=table3))
-latex(tabular( method ~ rho*time*identity, data=table4))
-latex(tabular( method ~ rho*time*identity, data=table5))
-latex(tabular( method ~ rho*time*identity, data=table6))
+View(timings)
+
+# 3b+c --------------------------------------------------------------------
+
+
+# table1 = with(avg, subset(avg, n==1000 & p==100))
+# table2 = with(avg, subset(avg, n==5000 & p==100))
+# table3 = with(avg, subset(avg, n==100 & p==1000))
+# table4 = with(avg, subset(avg, n==100 & p==5000))
+# table5 = with(avg, subset(avg, n==100 & p==20000))
+# table6 = with(avg, subset(avg, n==100 & p==50000))
+#
+# latex(tabular( method ~ rho*time*identity, data=table1))
+# latex(tabular( method ~ rho*time*identity, data=table2))
+# latex(tabular( method ~ rho*time*identity, data=table3))
+# latex(tabular( method ~ rho*time*identity, data=table4))
+# latex(tabular( method ~ rho*time*identity, data=table5))
+# latex(tabular( method ~ rho*time*identity, data=table6))
+
+
+# 3d ----------------------------------------------------------------------
+
+table1 = with(avg, subset(avg, n==1e3 & p==50000))
+table2 = with(avg, subset(avg, n==1e4 & p==5000))
+table3 = with(avg, subset(avg, n==1e5 & p==1000))
+table4 = with(avg, subset(avg, n==1e6 & p==100))
+
+latex(tabular(  rho*(time*identity + mse*identity) ~ method, data=table1))
+latex(tabular(  rho*(time*identity + mse*identity) ~ method, data=table2))
+latex(tabular(  rho*(time*identity + mse*identity) ~ method, data=table3))
+latex(tabular(  rho*(time*identity + mse*identity) ~ method, data=table4))

@@ -1,41 +1,22 @@
-library(tables)
+library(ggplot2)
 
-cols = c("method", "n", "p", "rho", "rep", "time", "mse")
-timings = matrix(nrow=0, ncol=length(cols))
-colnames(timings) <- cols
-rownames(timings) = NULL
+cols = c('method', 'n', 'alpha', 'bias', 'variance')
+d = matrix(nrow=0, ncol=length(cols))
+colnames(d) <- cols
+rownames(d) = NULL
 dir = '2cd'
 
 for (dir in dir) {
   output.files = list.files(dir, full.names=T)
   for(file in output.files) {
-    d = read.table(file, header=TRUE, quote="\"", stringsAsFactors=TRUE)
-    timings = rbind(timings, d)
+    tmp = read.table(file, header=TRUE, quote="\"", stringsAsFactors=FALSE)
+    d = rbind(d, tmp)
   }
 }
 
-ns = c(100, 1000, 5000)
-rhos = c(0.0, 0.1, 0.2, 0.5, 0.9, 0.95)
-# average over reps
-avg = with(timings, aggregate(timings, list(method, n, rho, p), mean))
-drops <- c('Group.1','Group.2','Group.3','Group.4', 'rep')
-avg = avg[,!names(avg)%in%drops]
-avg$method[avg$method==0] = 'glmnet (naive)'
-avg$method[avg$method==1] = 'glmnet (cov)'
-avg$method[avg$method==2] = 'sgd (standard)'
-avg$method[avg$method==3] = 'sgd (implicit)'
-avg$method = as.factor(avg$method)
-avg$rho = as.factor(avg$rho)
-table1 = with(avg, subset(avg, n==1000 & p==100))
-table2 = with(avg, subset(avg, n==5000 & p==100))
-table3 = with(avg, subset(avg, n==100 & p==1000))
-table4 = with(avg, subset(avg, n==100 & p==5000))
-table5 = with(avg, subset(avg, n==100 & p==20000))
-table6 = with(avg, subset(avg, n==100 & p==50000))
+sgd = d[d$method=='sgd',]
+asgd = d[d$method=='sgd',]
+implicit = d[d$method=='implicit',]
 
-latex(tabular( method ~ rho*time*identity, data=table1))
-latex(tabular( method ~ rho*time*identity, data=table2))
-latex(tabular( method ~ rho*time*identity, data=table3))
-latex(tabular( method ~ rho*time*identity, data=table4))
-latex(tabular( method ~ rho*time*identity, data=table5))
-latex(tabular( method ~ rho*time*identity, data=table6))
+p <- ggplot(sgd, aes(x=n, y=bias, group=alpha, colour=group))
+p + geom_line()
