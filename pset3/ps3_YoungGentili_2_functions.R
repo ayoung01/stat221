@@ -229,16 +229,13 @@ batch.sgd.2b <- function(data) {
 # 2cd ---------------------------------------------------------------------
 
 
-run.sgd.2cd <- function(alpha, n=1e5, p=100, asgd=F, implicit=F, verbose=T) {
+run.sgd.2cd <- function(alpha, n=1e6, p=100, asgd=F, implicit=F, verbose=T) {
   A = generate.A(p)
   data = sample.data(n, A)
 
   trace = sum(diag(data$A))
   theta.sgd = matrix(0, nrow=p, ncol=n)
   for (i in 1:(n-1)) {
-    if (n %% 10000 == 0 && verbose) {
-      print(n)
-    }
     theta.old = theta.sgd[, i]
     xi = data$X[i, ]
     ai = alpha / (alpha * trace + i)
