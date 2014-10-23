@@ -18,5 +18,14 @@ sgd = d[d$method=='sgd',]
 asgd = d[d$method=='sgd',]
 implicit = d[d$method=='implicit',]
 
+# compute variance
+empirical.var = (1 / lr(alpha, n)) * cov(thetas)
+var.trace = sum(diag(empirical.var))
+
+# compute bias
+true.theta = matrix(1, ncol=1, nrow=p)
+theta.avg = rowMeans(thetas)
+bias = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
+
 p <- ggplot(sgd, aes(x=n, y=bias, group=alpha, colour=group))
 p + geom_line()

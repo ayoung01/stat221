@@ -229,7 +229,7 @@ batch.sgd.2b <- function(data) {
 # 2cd ---------------------------------------------------------------------
 
 
-run.sgd.2cd <- function(alpha, n=1e6, p=100, asgd=F, implicit=F, verbose=T) {
+run.sgd.2cd <- function(alpha, n=1e5, p=100, asgd=F, implicit=F, verbose=T) {
   A = generate.A(p)
   data = sample.data(n, A)
 
@@ -255,15 +255,6 @@ run.sgd.2cd <- function(alpha, n=1e6, p=100, asgd=F, implicit=F, verbose=T) {
     theta.sgd[, i+1] = theta.new
   }
   return(theta.sgd)
-#   # compute variance
-#   empirical.var = (1 / lr(alpha, n)) * cov(thetas)
-#   var.trace = sum(diag(empirical.var))
-#
-#   # compute bias
-#   true.theta = matrix(1, ncol=1, nrow=p)
-#   theta.avg = rowMeans(thetas)
-#   bias = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
-
 }
 
 # 2e ----------------------------------------------------------------------
