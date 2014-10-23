@@ -269,11 +269,6 @@ run.sgd.2cd <- function(alpha, n=1e5, p=100, asgd=F, implicit=F, verbose=T) {
 
 }
 
-# returns p x nreps matrix of final sgd theta values
-sim.theta.sgd <- function(n, p, alpha, A, asgd=F, implicit=F) {
-
-}
-
 # 2e ----------------------------------------------------------------------
 
 run.sgd.2e <- function(nreps, alpha, n, implicit=F, asgd=F,
