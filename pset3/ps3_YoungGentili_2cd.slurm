@@ -1,10 +1,17 @@
 #!/bin/bash
 
+rm -r 2cd
+rm -r 2cd_cmds
+
 mkdir 2cd
+mkdir 2cd/sgd
+mkdir 2cd/asgd
+mkdir 2cd/implicit
 mkdir 2cd_cmds
 
 alphas=(0.01 0.1 0.5 1 2 10 20 50 100 200)
 reps=(1 2 3 4 5)
+n=100000
 
 for alpha in "${alphas[@]}"
 do
@@ -18,7 +25,7 @@ do
 		echo '#SBATCH --mem-per-cpu 4096 #Memory request' >> 2cd_cmds/${alpha}_${rep}.sh
 		echo '#SBATCH -n 1 #Number of cores' >> 2cd_cmds/${alpha}_${rep}.sh
 		echo '#SBATCH -N 1 #All cores on one machine' >> 2cd_cmds/${alpha}_${rep}.sh
-		echo "Rscript ps3_YoungGentili_2cd.R ${alpha} ${rep}" >> 2cd_cmds/${alpha}_${rep}.sh
+		echo "Rscript ps3_YoungGentili_2cd.R ${alpha} ${rep} ${n}" >> 2cd_cmds/${alpha}_${rep}.sh
 		cat 2cd_cmds/${alpha}_${rep}.sh | sbatch
 	done
 done
