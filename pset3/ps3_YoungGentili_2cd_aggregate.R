@@ -1,4 +1,5 @@
 library(ggplot2)
+library(data.table)
 `%+%` <- function(x,y) paste(x,y,sep="")
 lr <- function(alpha, n) {
   ## learning rate
@@ -15,37 +16,45 @@ n = 1e4
 true.theta = matrix(1, ncol=1, nrow=p)
 
 res = list()
+
 # average over reps
 for (method in methods) {
+  res[[method]] = list()
+  print(method)
   dir = '2cd/'%+%method%+%'/'
   for (alpha in alphas) {
+    res[[method]][[alpha]] = list()
+    print(alpha)
     thetas = matrix(0, nrow=p, ncol=n)
     for (rep in reps) {
       file = dir%+%alpha%+%'_'%+%rep%+%'.txt'
-      tmp = read.table(file, header=F, quote="\"", stringsAsFactors=FALSE)
+      tmp = fread(file)
       thetas = thetas + tmp
     }
-    thetas = thetas/length(reps)
+    thetas = as.matrix(thetas/length(reps))
 
-    var.trace = numeric(n)
-    bias = numeric(n)
+    div = 1000
+    var.trace = numeric(n/div)
+    bias = numeric(n/div)
+
 
     for (i in 1:n) {
-      thetas_n = thetas[, 1:i]
+      if (i %% div == 0){
+        print(i)
+        thetas_n = thetas[, 1:i]
+        # compute bias
+        theta.avg = rowMeans(thetas_n)
+        bias[i/div] = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
 
-      # compute bias
-      theta.avg = rowMeans(thetas_n)
-      bias = sqrt(t(theta.avg-true.theta) %*% (theta.avg-true.theta))
-
-      # compute variance
-      empirical.var = (1 / lr(alpha, i)) * cov(thetas_n)
-      var.trace[i] = sum(diag(empirical.var))
+        # compute variance
+        empirical.var = (1 / lr(as.numeric(alpha), i)) * cov(thetas_n)
+        var.trace[i/div] = sum(diag(empirical.var))
+      }
     }
-
-    res[[method]][[alpha]][[var.trace]] = var.trace
-    res[[method]][[alpha]][[bias]] = bias
+    res[[method]][[alpha]][['var.trace']] = var.trace
+    res[[method]][[alpha]][['bias']] = bias
   }
 }
 
-p <- ggplot(sgd, aes(x=n, y=bias, group=alpha, colour=group))
-p + geom_line()
+# p <- ggplot(sgd, aes(x=n, y=bias, group=alpha, colour=group))
+# p + geom_line()
