@@ -275,7 +275,7 @@ run.sgd.2e <- function(alpha, n, implicit=F, asgd=F,
   thetas = run.sgd.2cd(n=n, p=p, alpha=alpha, A=A, asgd=asgd, implicit=implicit)
 
   dist = numeric(n)
-  for (i in 1:n) {
+  for (i in 2:n) {
     # Calculate empirical variance
     empirical.var[i] = (1 / lr(alpha, i)) * cov(thetas[, 1:i])
     dist[i] = sqrt.norm(empirical.var - Sigma.theoretical)
