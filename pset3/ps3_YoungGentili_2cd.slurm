@@ -11,7 +11,7 @@ mkdir 2cd_cmds
 
 alphas=(0.01 0.1 0.5 1 2 10 20 50 100 200)
 reps=(1 2 3 4 5)
-n=100000
+n=10000
 
 for alpha in "${alphas[@]}"
 do

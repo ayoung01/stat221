@@ -229,8 +229,10 @@ batch.sgd.2b <- function(data) {
 # 2cd ---------------------------------------------------------------------
 
 
-run.sgd.2cd <- function(alpha, n=1e5, p=100, asgd=F, implicit=F, verbose=T) {
-  A = generate.A(p)
+run.sgd.2cd <- function(alpha, n=1e4, p=100, asgd=F, implicit=F, verbose=T, A=NULL) {
+  if (is.null(A)) {
+    A = generate.A(p)
+  }
   data = sample.data(n, A)
 
   trace = sum(diag(data$A))
@@ -259,8 +261,8 @@ run.sgd.2cd <- function(alpha, n=1e5, p=100, asgd=F, implicit=F, verbose=T) {
 
 # 2e ----------------------------------------------------------------------
 
-run.sgd.2e <- function(nreps, alpha, n, implicit=F, asgd=F,
-                         p=10, verbose=F) {
+run.sgd.2e <- function(alpha, n, implicit=F, asgd=F,
+                         p=100, verbose=F) {
   # Calculates || Empirical variance - Theoretical ||
   #
   A = generate.A(p)
@@ -270,11 +272,13 @@ run.sgd.2e <- function(nreps, alpha, n, implicit=F, asgd=F,
   Sigma.theoretical <- alpha * solve(2 * alpha * A - I) %*% A
   stopifnot(all(eigen(Sigma.theoretical)$values > 0))
 
-  # Get many replications for each n
-  thetas = sim.theta.sgd(n=n, p=p, alpha=alpha, nreps=nreps, A=A, asgd=asgd, implicit=implicit)
-  # Calculate empirical variance
-  empirical.var = (1 / lr(alpha, n)) * cov(thetas)
+  thetas = run.sgd.2cd(n=n, p=p, alpha=alpha, A=A, asgd=asgd, implicit=implicit)
 
-  dist = sqrt.norm(empirical.var - Sigma.theoretical)
+  dist = numeric(n)
+  for (i in 1:n) {
+    # Calculate empirical variance
+    empirical.var[i] = (1 / lr(alpha, i)) * cov(thetas[, 1:i])
+    dist[i] = sqrt.norm(empirical.var - Sigma.theoretical)
+  }
   return(dist)
 }
