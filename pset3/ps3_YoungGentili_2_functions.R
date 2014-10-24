@@ -229,7 +229,7 @@ batch.sgd.2b <- function(data) {
 # 2cd ---------------------------------------------------------------------
 
 
-run.sgd.2cd <- function(alpha, n=1e4, p=100, asgd=F, implicit=F, verbose=T, A=NULL) {
+run.sgd.2cd <- function(alpha, n=1e4, p=100, asgd=F, implicit=F, verbose=T, A=NULL, last=F) {
   if (is.null(A)) {
     A = generate.A(p)
   }
@@ -256,6 +256,9 @@ run.sgd.2cd <- function(alpha, n=1e4, p=100, asgd=F, implicit=F, verbose=T, A=NU
     }
     theta.sgd[, i+1] = theta.new
   }
+  if (last) {
+    return(theta.sgd[, n])
+  }
   return(theta.sgd)
 }
 
@@ -265,17 +268,24 @@ run.sgd.2e <- function(alpha, n, implicit=F, asgd=F,
                          p=100, verbose=F) {
   # Calculates || Empirical variance - Theoretical ||
   #
+  nreps = 100
   A = generate.A(p)
+  last.theta = matrix(NA, nrow=p, ncol=0)
 
   # Compute theoretical variance
   I = diag(p)
   Sigma.theoretical <- alpha * solve(2 * alpha * A - I) %*% A
   stopifnot(all(eigen(Sigma.theoretical)$values > 0))
 
-  thetas = run.sgd.2cd(n=n, p=p, alpha=alpha, A=A, asgd=asgd, implicit=implicit)
+  for(j in 1:nreps) {
+    data = sample.data(n, A)
+    out = run.sgd.2cd(n=n, p=p, alpha=alpha, A=A, asgd=asgd, implicit=implicit)
+    # Every replication stores the last theta_n
+    last.theta <- cbind(last.theta, out)
+  }
 
   # Calculate empirical variance
-  empirical.var = (1 / lr(alpha, n)) * cov(thetas)
+  empirical.var = (1 / lr(alpha, n)) * cov(t(thetas))
   dist = sqrt.norm(empirical.var - Sigma.theoretical)
   return(dist)
 }

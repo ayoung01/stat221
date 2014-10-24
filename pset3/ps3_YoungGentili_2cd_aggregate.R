@@ -56,5 +56,47 @@ for (method in methods) {
   }
 }
 
-# p <- ggplot(sgd, aes(x=n, y=bias, group=alpha, colour=group))
-# p + geom_line()
+dfs = list()
+# plot graphs
+idx = seq(1000, 10000, 1000)
+for (method in methods) {
+  df = data.frame()
+  for (alpha in alphas) {
+    df = rbind(df, cbind(alpha=as.numeric(alpha), n=idx, log.var.trace=log(res[[method]][[alpha]][['var.trace']])))
+  }
+  dfs[[method]] = df
+}
+
+p <- ggplot(dfs$sgd, aes(x=n, y=log.var.trace, group=alpha, colour=factor(alpha)))
+p + geom_line() + ggtitle('Log Empirical Variance Trace vs. N (Standard SGD)')
+
+
+p <- ggplot(dfs$asgd, aes(x=n, y=log.var.trace, group=alpha, colour=factor(alpha)))
+p + geom_line() + ggtitle('Log Empirical Variance Trace vs. N (ASGD)')
+
+
+p <- ggplot(dfs$implicit, aes(x=n, y=log.var.trace, group=alpha, colour=factor(alpha)))
+p + geom_line() + ggtitle('Log Empirical Variance Trace vs. N (Implicit SGD)')
+
+
+for (method in methods) {
+  df = data.frame()
+  for (alpha in alphas) {
+    df = rbind(df, cbind(alpha=as.numeric(alpha), n=idx, log.bias=log(res[[method]][[alpha]][['bias']])))
+  }
+  dfs[[method]] = df
+}
+
+p <- ggplot(dfs$sgd, aes(x=n, y=log.bias, group=alpha, colour=factor(alpha)))
+p + geom_line() + ggtitle('Log(Bias) vs. N (Standard SGD)')
+
+
+p <- ggplot(dfs$asgd, aes(x=n, y=log.bias, group=alpha, colour=factor(alpha)))
+p + geom_line() + ggtitle('Log(Bias) vs. N (ASGD)')
+
+
+p <- ggplot(dfs$implicit, aes(x=n, y=log.bias, group=alpha, colour=factor(alpha)))
+p + geom_line() + ggtitle('Log(Bias) vs. N (Implicit SGD)')
+
+
+
