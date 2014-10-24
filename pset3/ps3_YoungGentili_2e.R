@@ -8,9 +8,9 @@ n = args[1]
 alpha = args[2]
 
 res = run.sgd.2e(alpha=alpha, n=n)
-write.table(res, file=sprintf("2e/sgd/%.0f.txt", alpha),
+write.table(res, file=sprintf("2e/sgd/%.0f_%.0f.txt", n, alpha),
             row.names=FALSE, quote=FALSE)
 
 res = run.sgd.2cd(alpha=alpha, n=n, implicit=T)
-write.table(res, file=sprintf("2e/implicit/%.0f.txt", alpha),
+write.table(res, file=sprintf("2e/implicit/%.0f_%.0f.txt", n, alpha),
             row.names=FALSE, quote=FALSE)
