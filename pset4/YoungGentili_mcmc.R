@@ -3,9 +3,14 @@
 # Fall 2014, Stat221, Harvard
 
 library(MASS)
+`%+%` <- function(x,y) paste(x,y,sep="")
+
 
 impala = read.table('impala.txt', header=T, quote="\"", stringsAsFactors=F)$impala
 waterbuck = read.table('waterbuck.txt', header=T, quote="\"", stringsAsFactors=F)$waterbuck
+
+NBound = 150
+thetaBound = 1
 
 log.lik <- function(N, theta, Y) {
   # Log-likelihood of the data
@@ -81,9 +86,13 @@ rgamma.trunc <- function(upper.bound, s, r) {
 plot.chain <- function(mcmc.chain) {
   mcmc.niters = nrow(mcmc.chain)
   burnin = 0.1 * mcmc.niters
+  x = mcmc.chain[, 1]
+  y = mcmc.chain[, 2]
   mcmc.chain = mcmc.chain[burnin:mcmc.niters, ]
-  f = kde2d(x=mcmc.chain[, 1], y=mcmc.chain[, 2], n=100)
-  image(f, xlim=c(0, kBound), ylim=c(0, kBound))
+  f = kde2d(x, y, n=100)
+  image(f, xlim=c(min(x), max(x)), ylim=c(min(y), max(y)))
+  contour(f$x, f$y, f$z, nlevels=5, add=T, cex=2, col='black')
+  #   points(x, y, pch=21, col=rgb(0,0,0,0.01))
 }
 
 mcmc.gibbs <- function(y, mcmc.niters=1e4) {
@@ -105,38 +114,62 @@ mcmc.gibbs <- function(y, mcmc.niters=1e4) {
   return(mcmc.chain)
 }
 
-mcmc.mh <- function(y, mcmc.niters=1e4) {
-  # Complete with MH.
-  S = sum(y)
-  n = length(y)
+mcmc.mh <- function(y, mcmc.niters=1e4, init=c(90, 0.7)) {
   mcmc.chain <- matrix(0.1, nrow=mcmc.niters, ncol=2)
+  mcmc.chain[1, ] = init
   nacc <- 0
   for(i in 2:mcmc.niters) {
-    mu <- rgamma.trunc(kBound**2, s=S+1, r=n)
     # 1. Current state
-    alpha.old = mcmc.chain[i-1, 1]
-    beta.old = mcmc.chain[i-1, 2]
+    N.old = mcmc.chain[i-1, 1]
+    theta.old = mcmc.chain[i-1, 2]
     # 2. Propose new state
-    #   Respect symmetry in (a,b)
-    alpha.new = runif(1, min=mu/kBound, max=kBound)
-    beta.new = mu / alpha.new
-    if(runif(1) < 0.5) {
-      beta.new = alpha.new
-      alpha.new = mu / beta.new
+    N.new = trunc(rnorm(1, N.old, 3))
+    theta.new = rnorm(1, theta.old, 0.05)
+
+    if (N.new < 0) {
+      N.new = 1
     }
+    if (theta.new < 0) {
+      theta.new = 0
+    }
+    if (theta.new > 1) {
+      theta.new = 1
+    }
+
     # 3. Ratio
-    mh.ratio = min(0, log.posterior(alpha.new, beta.new, y) -
-                      log.posterior(alpha.old, beta.old, y))
+    mh.ratio = min(0, log.posterior(N.new, theta.new, y) -
+                     log.posterior(N.old, theta.old, y))
     if(runif(1) < exp(mh.ratio)) {
       # Accept
-      mcmc.chain[i, ] <- c(alpha.new, beta.new)
+      mcmc.chain[i, ] <- c(N.new, theta.new)
       nacc <- nacc + 1
     } else {
-      mcmc.chain[i, ] <- c(alpha.old, beta.old)
+      mcmc.chain[i, ] <- c(N.old, theta.old)
     }
   }
-  # Cut the burnin period.
-  print(sprintf("Acceptance ratio %.2f%%", 100 * nacc / mcmc.niters))
+  # Cut the burn-in period.
   plot.chain(mcmc.chain)
+  print(sprintf("Acceptance ratio %.2f%%", 100 * nacc / mcmc.niters))
   return(mcmc.chain)
 }
+
+generate_1.4_plots = function(y, niter=1e4, init=c(90, 0.7), title) {
+  name <- function(v1) {
+    deparse(substitute(v1))
+  }
+  par(mfrow=c(5,2),
+      oma = c(5,4,0,0) + 0.6,
+      mar = c(0,0,1,1) + 0.6
+  )
+  for (i in 1:10) {
+    mcmc.mh(y, niter, init)
+  }
+  mtext(title%+%' MCMC chain ('%+%niter%+%' Iterations)', side=3, outer=TRUE, line=-1)
+  title(xlab='N',
+        ylab='theta',
+        outer=TRUE,
+        line=3)
+}
+
+generate_1.4_plots(impala, init=c(50, 0.6), title='impala')
+generate_1.4_plots(waterbuck, init=c(90, 0.7), title='waterbuck')
