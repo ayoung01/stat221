@@ -18,7 +18,7 @@ log.lik <- function(N, theta, Y) {
 }
 
 log.prior <- function(N, theta) {
-  return(log(1/(N*(N-1)*theta)))
+  return(log(1/(N*theta)))
 }
 
 log.posterior <- function(a, b, Y) {
@@ -114,7 +114,8 @@ mcmc.gibbs <- function(y, mcmc.niters=1e4) {
   return(mcmc.chain)
 }
 
-mcmc.mh <- function(y, mcmc.niters=1e4, init=c(90, 0.7)) {
+mcmc.mh <- function(y, mcmc.niters=1e4, init=c(45, 0.4)) {
+  n = length(y)
   mcmc.chain <- matrix(0.1, nrow=mcmc.niters, ncol=2)
   mcmc.chain[1, ] = init
   nacc <- 0
@@ -123,8 +124,13 @@ mcmc.mh <- function(y, mcmc.niters=1e4, init=c(90, 0.7)) {
     N.old = mcmc.chain[i-1, 1]
     theta.old = mcmc.chain[i-1, 2]
     # 2. Propose new state
-    N.new = trunc(rnorm(1, N.old, 3))
-    theta.new = rnorm(1, theta.old, 0.05)
+#     N.new = trunc(rnorm(1, N.old, 3))
+#     theta.new = rnorm(1, theta.old, 0.05)
+
+    # TODO: construct better proposal distribution
+    N.new = trunc(rnorm(1, N.old, 12))
+    S.new = N.new * rbeta(1, sum(y), N.new * n)
+    theta.new = S.new / N.new
 
     if (N.new < 0) {
       N.new = 1
@@ -139,6 +145,7 @@ mcmc.mh <- function(y, mcmc.niters=1e4, init=c(90, 0.7)) {
     # 3. Ratio
     mh.ratio = min(0, log.posterior(N.new, theta.new, y) -
                      log.posterior(N.old, theta.old, y))
+    print(mh.ratio)
     if(runif(1) < exp(mh.ratio)) {
       # Accept
       mcmc.chain[i, ] <- c(N.new, theta.new)
@@ -171,5 +178,47 @@ generate_1.4_plots = function(y, niter=1e4, init=c(90, 0.7), title) {
         line=3)
 }
 
-generate_1.4_plots(impala, init=c(50, 0.6), title='impala')
-generate_1.4_plots(waterbuck, init=c(90, 0.7), title='waterbuck')
+calculate_marginal_posterior_1.5 = function(y, Nmax=500) {
+  sum = 0
+  n = length(y)
+  for (N in max(y):Nmax) {
+    c1 = sum(sapply(y, function(yi){
+      lchoose(N, yi)
+    }))
+    sum = sum + exp(c1 - log(N) - log(sum(y)) - lchoose(N*n, sum(y)))
+  }
+  return(sum)
+}
+
+
+
+# 1.4 Run MCMC ------------------------------------------------------------
+
+impala.mcmc = mcmc.mh(impala, init=c(50,0.5))
+waterbuck.mcmc = mcmc.mh(waterbuck, init=c(130, 0.7))
+
+generate_1.4_plots(impala, init=c(50, 0.5), title='impala')
+generate_1.4_plots(waterbuck, init=c(130, 0.7), title='waterbuck')
+
+#
+# # 1.5 Determine Normalizing Constant --------------------------------------
+#
+# xs = exp(4:15)
+# ys = sapply(xs, function(x) calculate_marginal_posterior_1.5(impala, Nmax=x))
+# pdf('impala.normc.pdf')
+# plot(xs, ys, xlab='Nmax', ylab='Normalizing Constant')
+# dev.off()
+#
+# ys = sapply(xs, function(x) calculate_marginal_posterior_1.5(waterbuck, Nmax=x))
+# pdf('waterbuck.normc.pdf')
+# plot(xs, ys, xlab='Nmax', ylab='Normalizing Constant')
+# dev.off()
+#
+# # hist(impala.mcmc[,1])
+# # sum(table(impala.mcmc[,1])/1e4)
+#
+#
+# # 1.6 ---------------------------------------------------------------------
+#
+sum(impala.mcmc[,1] > 100)/1e4
+sum(waterbuck.mcmc[,1] > 100)/1e4
