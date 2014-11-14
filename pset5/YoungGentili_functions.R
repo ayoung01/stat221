@@ -10,9 +10,12 @@ getSigma = function(phi, lambdas, c=2) {
   }
   return(phi * sigma)
 }
-getQ = function(theta, A, y, w=11) {
-  theta[1] = phi
-  theta[2:length(theta)] = lambdas
+getQ = function(theta, A, y, w=11, debug=0) {
+  if (debug==2) {
+    browser()
+  }
+  phi = theta[1]
+  lambdas = theta[2:length(theta)]
   sigma11 = getSigma(phi, lambdas)
   sigma12 = sigma11 %*% t(A)
   sigma21 = A %*% sigma11
@@ -23,8 +26,8 @@ getQ = function(theta, A, y, w=11) {
   for (t in 1:nrow(y)) {
     a = y[t, ]
     m_t = mu1 + sigma12 %*% solve(sigma22) %*% (a - mu2)
-    s = s + m_t
+    s = s + t(m_t - lambdas) %*% solve(sigma11) %*% (m_t - lambdas)
   }
   R = sigma11 - sigma12 %*% solve(sigma22) %*% sigma21
-  return(-w/2*(log(det(sigma)) + tr(solve(sigma11) %*% R)) - s/2)
+  return(-w/2*(log(det(sigma11)) + tr(solve(sigma11) %*% R)) - s/2)
 }
