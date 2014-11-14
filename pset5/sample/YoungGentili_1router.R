@@ -58,6 +58,8 @@ p + geom_point() + facet_grid(. ~ panel) + xlab('log10(mean)') + ylab('log10(var
 
 # 1.4 ---------------------------------------------------------------------
 
+### Prepare constants
+
 # J x I incidence matrix
 A = matrix(c(rep(1, 4), rep(0, 12),
              rep(0, 4), rep(1, 4), rep(0, 8),
@@ -66,19 +68,32 @@ A = matrix(c(rep(1, 4), rep(0, 12),
              rep(c(1,0,0,0), 4),
              rep(c(0,1,0,0), 4),
              rep(c(0,0,1,0), 4)), ncol=16, byrow=T)
+I = 16
+w = 11
 
+# T x J matrix
 Y = do.call(rbind, tapply(links$value, links$time, function(x) x))
 colnames(Y) = links$nme[1:8]
 Y = Y[, -ncol(Y)] # drop last column so we have linearly independent link measurements
 
 thetas_t = list()
+
+## Run EM for every window
+
 for (t in 6:282) {
+  # initialize phi & lambdas
+  ### TODO: initialize this in a smarter way
+  phi.init = 1
+  lambdas.init = rep(1e4, I)
+  theta = c(phi.init, lambdas.init)
+  # get window of 11 data points
+  y = Y[(t-(w-1)/2):t+(w-1)/2, ]
 
-  theta = # initialize phi & lambdas
-
-  while (EM has not converged) {
+  epsilon = 1e-4
+  # repeat while EM has not converged
+  repeat {
     # E-step
-    Q = getQ(theta, A)
+    Q = getQ(theta, A, y, w=w)
 
     # M-step
     fit <- optim(par=theta,
@@ -86,8 +101,9 @@ for (t in 6:282) {
                  method="L-BFGS-B",
                  control=list(fnscale=-1))
     theta = fit$par
-
-    ### uh... where do our Y's come in?
+    if (fit$value - Q < epsilon) {
+      break
+    }
   }
   thetas_t$t = theta
 }
