@@ -1,4 +1,6 @@
 library(scales)
+source('YoungGentili_functions.R')
+
 router1 = read.csv("1router_allcount.dat")
 router2 = read.csv("2router_linkcount.dat")
 
@@ -52,3 +54,41 @@ df = data.frame(x = c(mean.1130, mean.1530), y = c(var.1130, var.1530), panel = 
 p = ggplot(df, aes(x, y)) + geom_smooth(method="lm",data=df,colour="gray",se=FALSE, fullrange=TRUE)
 p + geom_point() + facet_grid(. ~ panel) + xlab('log10(mean)') + ylab('log10(var)') +
   ggtitle('Local Variances Versus Local Means for Router2 Link Measurements')
+
+
+# 1.4 ---------------------------------------------------------------------
+
+# J x I incidence matrix
+A = matrix(c(rep(1, 4), rep(0, 12),
+             rep(0, 4), rep(1, 4), rep(0, 8),
+             rep(0, 8), rep(1, 4), rep(0, 4),
+             rep(0, 12), rep(1, 4),
+             rep(c(1,0,0,0), 4),
+             rep(c(0,1,0,0), 4),
+             rep(c(0,0,1,0), 4)), ncol=16, byrow=T)
+
+Y = do.call(rbind, tapply(links$value, links$time, function(x) x))
+colnames(Y) = links$nme[1:8]
+Y = Y[, -ncol(Y)] # drop last column so we have linearly independent link measurements
+
+thetas_t = list()
+for (t in 6:282) {
+
+  theta = # initialize phi & lambdas
+
+  while (EM has not converged) {
+    # E-step
+    Q = getQ(theta, A)
+
+    # M-step
+    fit <- optim(par=theta,
+                 fn=Q,
+                 method="L-BFGS-B",
+                 control=list(fnscale=-1))
+    theta = fit$par
+
+    ### uh... where do our Y's come in?
+  }
+  thetas_t$t = theta
+}
+
