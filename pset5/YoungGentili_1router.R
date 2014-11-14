@@ -74,65 +74,12 @@ A = matrix(c(rep(1, 4), rep(0, 12),
 I = 16
 w = 11
 
-# T x J matrix
+# Y is a T x J matrix
 Y = do.call(rbind, tapply(links$value, links$time, function(x) x))
 colnames(Y) = links$nme[1:8]
 Y = Y[, -ncol(Y)] # drop last column so we have linearly independent link measurements
 
 
-## Run EM for every window
-runEM_1.4 <- function(verbose=1, debug=0) {
-  # debug 1: break in EM loop
-  # debug 2: break in getQ
-  thetas_t = list()
-  for (t in 6:282) {
-    if (verbose > 0) {
-      print('t: '%+%t)
-    }
-    # initialize phi & lambdas
-    ### TODO: initialize this in a smarter way
-    phi.init = 1
-    lambdas.init = rep(1e4, I)
-    theta = c(phi.init, lambdas.init)
-    # get window of 11 data points
-    y = Y[(t-(w-1)/2):t+(w-1)/2, ]
+thetas_t = runEM_1.4(Y, debug=0, verbose=2)
 
-    epsilon = 1e-4
-    counter = 0
-    # repeat while EM has not converged
-    repeat {
-      # E-step
-      Q = getQ(theta, A, y, w=w, debug=debug)
-      if (debug == 1) {
-        browser()
-      }
 
-      # M-step
-      fit <- optim(par=theta,
-                   fn=getQ,
-                   method="L-BFGS-B",
-                   lower=rep(0.1, I+1), # phi > 0 and lambda > 0
-                   control=list(fnscale=-1),
-                   A=A, y=y, w=w)
-      theta = fit$par
-      counter = counter + 1
-
-      if (verbose > 1) print('Q at iteration '%+%counter%+%': '%+%fit$value)
-
-      if (fit$value - Q < epsilon) {
-        if (verbose) {
-          print('EM exited after: '%+%counter%+%' steps')
-        }
-        break
-      }
-    }
-    thetas_t$t = theta
-    if (verbose > 0) {
-      print(theta)
-      if (verbose > 1) print(fit$value)
-    }
-  }
-  return(thetas_t)
-}
-
-thetas_t = runEM_1.4(debug=0, verbose=2)
