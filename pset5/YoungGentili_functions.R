@@ -44,7 +44,7 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
     # initialize phi & lambdas
     ### TODO: initialize this in a smarter way
     phi.init = 1
-    lambdas.init = rep(1e4, I)
+    lambdas.init = rep(1, I)
     theta = c(phi.init, lambdas.init)
     # get window of 11 data points
     y = Y[(t-(w-1)/2):t+(w-1)/2, ]
@@ -62,8 +62,8 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
       # M-step
       fit <- optim(par=theta,
                    fn=getQ,
-                   method="L-BFGS-B",
-                   lower=rep(1e-2, I+1), # phi > 0 and lambda > 0
+                   method="Nelder-Mead",
+                   lower=c(1e-4, rep(0.1, I)), # phi > 0 and lambda > 0
                    control=list(fnscale=-1),
                    A=A, y=y, w=w)
       theta = fit$par
@@ -78,7 +78,7 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
         break
       }
     }
-    thetas_t$t = theta
+    thetas_t[[t]] = theta
     if (verbose > 0) {
       print(theta)
       if (verbose > 1) print(fit$value)

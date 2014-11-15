@@ -82,4 +82,21 @@ Y = Y[, -ncol(Y)] # drop last column so we have linearly independent link measur
 
 thetas_t = runEM_1.4(Y, debug=0, verbose=2)
 
+### not the most elegant way to plot this but it works
+
+df = do.call(rbind, thetas_t)
+lambdas = data.frame(df[ ,2:ncol(df)])
+lambdas = stack(lambdas)
+
+names = unique(router1$nme)
+names = names[grep("->", names)]
+names = factor(names, levels = names)
+
+lambdas$names = rep(names, each=277)
+
+p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() + xlab('hour of day') + ylab('bytes/sec') +
+    ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
+p + facet_wrap(~ names)
+
+
 
