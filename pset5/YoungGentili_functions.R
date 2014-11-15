@@ -63,7 +63,7 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
       fit <- optim(par=theta,
                    fn=getQ,
                    method="L-BFGS-B",
-                   lower=rep(0.1, I+1), # phi > 0 and lambda > 0
+                   lower=rep(1e-2, I+1), # phi > 0 and lambda > 0
                    control=list(fnscale=-1),
                    A=A, y=y, w=w)
       theta = fit$par
