@@ -32,6 +32,65 @@ getQ = function(theta, A, y, w=11, debug=0) {
   return(-w/2*(log(det(sigma11)) + tr(solve(sigma11) %*% R)) - s/2)
 }
 
+get.m_t = function(phi, lambdas, y_t, A) {
+  sigma11 = getSigma(phi, lambdas)
+  sigma12 = sigma11 %*% t(A)
+  sigma21 = A %*% sigma11
+  sigma22 = A %*% sigma11 %*% t(A)
+  mu1 = lambdas
+  mu2 = A %*% lambdas
+  a = y_t
+  m_t = mu1 + sigma12 %*% solve(sigma22) %*% (a - mu2)
+  return(m_t)
+}
+
+get.m = function(phi, lambdas, Y, A) {
+  I = length(lambdas)
+  m = matrix(0, nrow=nrow(Y), ncol=I)
+  for (i in 1:nrow(Y)) {
+    m[i, ] = get.m_t(phi, lambdas, Y[i, ], A)
+  }
+  return(m)
+}
+
+get.R = function(phi, lambdas, A) {
+  sigma11 = getSigma(phi, lambdas)
+  sigma12 = sigma11 %*% t(A)
+  sigma21 = A %*% sigma11
+  sigma22 = A %*% sigma11 %*% t(A)
+  R = sigma11 - sigma12 %*% solve(sigma22) %*% sigma21
+  return(R)
+}
+
+get.a = function(R, m_t) {
+  a = numeric(I)
+  T. = length(m_t)
+  for (i in 1:length(A)) {
+    a[i] = R[i, i] + 1/T. * sum(m_t^2)
+  }
+  return(a)
+}
+
+get.b = function(m) {
+  return(colMeans(m))
+}
+
+get.J = function(phi, lambdas, Y, A, c=2, debug=FALSE) {
+  if(debug) browser()
+  I = length(lambdas)
+  J = matrix(0, nrow=I+1, ncol=I+1)
+  m = get.m(phi, lambdas, Y, A)
+  b = get.b(m)
+  for (i in 1:I) {
+    J[i, i] = phi*c^2*lambdas[i]^(c-1) + 2*(2-c)*lambdas[i] - 2*(1-c)*b[i] # populate diagonal
+    J[i, I+1] = c*lambdas[i]^c # populate last column
+    J[I+1, i] = c*lambdas[i]^c # populate last column
+#     J[I+1, i] = (2-c)*lambdas[i]^(1-c)-(1-c)*lambdas[i]^(-c)*b[i] # populate last row
+    # TODO: figure out coefficients due to taking log
+  }
+  return(J)
+}
+
 ## Run EM for every window
 runEM_1.4 <- function(Y, verbose=1, debug=0) {
   # debug 1: break in EM loop

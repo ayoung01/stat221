@@ -1,4 +1,5 @@
 library(scales)
+library(mvtnorm)
 source('YoungGentili_functions.R')
 
 router1 = read.csv("1router_allcount.dat")
@@ -99,4 +100,67 @@ p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() 
 p + facet_wrap(~ names)
 
 
+# 1.6 ---------------------------------------------------------------------
 
+# sigmas = list of sigmas indexed by t
+# etas = list of etas indexed by t
+# Y = list of y_t indexed by t
+g = function(eta_t, etas, sigmas_hat, t, Y, debug=FALSE) {
+  if (debug) {
+    browser()
+  }
+  logprior = dmvnorm(eta_t, mean=etas[[t-1]], sigma=sigmas_hat[[t-1]], log=TRUE)
+  lambdas = lapply(etas, function(x) {
+    exp(x[2:17])
+  })
+  sigmas = lapply(etas, function(eta){
+    phi = exp(eta[1])
+    lambda = exp(eta[2:17])
+    return(getSigma(phi, lambda))
+  })
+  loglik = 0
+  for (i in t-5:t+5) {
+    loglik = loglik -1/2*(log(det(A%*%sigmas[[i]]%*%t(A)))+
+                            t(log(Y[[i]])-A%*%log(lambdas[[i]]))%*%solve(A%*%sigmas[[i]]%*%t(A))%*%(log(Y[[i]])-A%*%log(lambdas[[i]])))
+  }
+  return(logprior + loglik)
+}
+# g(etas[[8]], etas, sigmas.cond, 8, Y.list, debug=TRUE)
+source('YoungGentili_functions.R')
+### initialize eta_0 and sigma_0
+V = diag(I + 1)
+
+etas = lapply(thetas_t, function(x) {
+  if (!is.null(x)) {
+    return(log(x))
+  }
+  else {
+    return(runif(I+1))
+  }
+})
+sigmas = list()
+sigmas.cond = list()
+for (i in 1:287) {
+  sigmas[[i]] = 10*diag(I + 1)
+  sigmas.cond[[i]] = 10*diag(I + 1)
+}
+
+Y.list = split(Y, 1:nrow(Y))
+
+### iterate through all time points
+for (t in 6:282) {
+  print(t)
+  sigmas.cond[[t]] = sigmas[[t-1]] + V
+  fit <- optim(par=etas[[t-1]],
+               fn=g,
+               method="Nelder-Mead",
+               control=list(fnscale=-1),
+               etas=etas, sigmas_hat=sigmas.cond, t=t, Y=Y.list)
+  print(fit$par)
+  print(fit$value)
+  etas[[t]] = fit$par
+  phi = exp(etas[[t]][1])
+  lambdas = exp(etas[[t]][2:length(etas[[t]])])
+  J = get.J(phi=phi, lambdas=lambdas, Y=Y[(t-h):(t+h), ], A=A, c=2, debug=FALSE)
+  sigmas[[t]] = solve(-solve(sigmas.cond[[t]]) + J)
+}
