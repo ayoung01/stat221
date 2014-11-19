@@ -1,5 +1,6 @@
 library(scales)
 library(mvtnorm)
+library(numDeriv)
 source('YoungGentili_functions.R')
 
 router1 = read.csv("1router_allcount.dat")
@@ -80,10 +81,7 @@ Y = do.call(rbind, tapply(links$value, links$time, function(x) x))
 colnames(Y) = links$nme[1:8]
 Y = Y[, -ncol(Y)] # drop last column so we have linearly independent link measurements
 
-
 thetas_t = runEM_1.4(Y, debug=0, verbose=2)
-
-### not the most elegant way to plot this but it works
 
 df = do.call(rbind, thetas_t)
 lambdas = data.frame(df[ ,2:ncol(df)])
@@ -96,39 +94,14 @@ names = factor(names, levels = names)
 lambdas$names = rep(names, each=277)
 
 p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() + xlab('hour of day') + ylab('bytes/sec') +
-    ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
-p + facet_wrap(~ names)
+  ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
+p = p + facet_wrap(~ names)
+plot_1.4(thetas_t)
 
 
 # 1.6 ---------------------------------------------------------------------
 
-# sigmas = list of sigmas indexed by t
-# etas = list of etas indexed by t
-# Y = list of y_t indexed by t
-g = function(eta_t, etas, sigmas_hat, t, Y, debug=FALSE) {
-  if (debug) {
-    browser()
-  }
-  logprior = dmvnorm(eta_t, mean=etas[[t-1]], sigma=sigmas_hat[[t-1]], log=TRUE)
-  lambdas = lapply(etas, function(x) {
-    exp(x[2:17])
-  })
-  sigmas = lapply(etas, function(eta){
-    phi = exp(eta[1])
-    lambda = exp(eta[2:17])
-    return(getSigma(phi, lambda))
-  })
-  loglik = 0
-  for (i in t-5:t+5) {
-    loglik = loglik -1/2*(log(det(A%*%sigmas[[i]]%*%t(A)))+
-                            t(log(Y[[i]])-A%*%log(lambdas[[i]]))%*%solve(A%*%sigmas[[i]]%*%t(A))%*%(log(Y[[i]])-A%*%log(lambdas[[i]])))
-  }
-  return(logprior + loglik)
-}
-# g(etas[[8]], etas, sigmas.cond, 8, Y.list, debug=TRUE)
 source('YoungGentili_functions.R')
-### initialize eta_0 and sigma_0
-V = diag(I + 1)
 
 etas = lapply(thetas_t, function(x) {
   if (!is.null(x)) {
@@ -138,29 +111,37 @@ etas = lapply(thetas_t, function(x) {
     return(runif(I+1))
   }
 })
+
+V = diag(5*exp(etas[[5]]))
+
 sigmas = list()
 sigmas.cond = list()
 for (i in 1:287) {
-  sigmas[[i]] = 10*diag(I + 1)
-  sigmas.cond[[i]] = 10*diag(I + 1)
+  sigmas[[i]] = diag(I + 1)
+  sigmas.cond[[i]] = diag(I + 1)
 }
 
 Y.list = split(Y, 1:nrow(Y))
 
+# g(etas[[10]], etas, sigmas.cond, 11, Y.list, debug=T)
+# g(etas[[11]], etas, sigmas.cond, 12, Y.list, debug=T)
+# g(etas[[12]], etas, sigmas.cond, 13, Y.list, debug=T)
+
 ### iterate through all time points
-for (t in 6:282) {
+for (t in 11:282) {
   print(t)
   sigmas.cond[[t]] = sigmas[[t-1]] + V
   fit <- optim(par=etas[[t-1]],
                fn=g,
                method="Nelder-Mead",
                control=list(fnscale=-1),
-               etas=etas, sigmas_hat=sigmas.cond, t=t, Y=Y.list)
+               etas=etas, sigmas_cond=sigmas.cond, t=t, Y=Y.list)
   print(fit$par)
   print(fit$value)
   etas[[t]] = fit$par
   phi = exp(etas[[t]][1])
   lambdas = exp(etas[[t]][2:length(etas[[t]])])
-  J = get.J(phi=phi, lambdas=lambdas, Y=Y[(t-h):(t+h), ], A=A, c=2, debug=FALSE)
+#   J = get.J(phi=phi, lambdas=lambdas, Y=Y[(t-h):(t+h), ], A=A, c=2, debug=FALSE)
+  J = hessian(getQ, c(phi, lambdas), A=A, y=Y[seq(t-h, t+h), ], debug=2)
   sigmas[[t]] = solve(-solve(sigmas.cond[[t]]) + J)
 }

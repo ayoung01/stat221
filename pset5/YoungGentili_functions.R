@@ -91,6 +91,32 @@ get.J = function(phi, lambdas, Y, A, c=2, debug=FALSE) {
   return(J)
 }
 
+# sigmas = list of sigmas indexed by t
+# etas = list of etas indexed by t
+# Y = list of y_t indexed by t
+g = function(eta_t, etas, sigmas_cond, t, Y, h=5, debug=FALSE) {
+  if (debug) {
+    browser()
+  }
+  logprior = dmvnorm(eta_t, mean=etas[[t-1]], sigma=sigmas_cond[[t]], log=TRUE)
+  etas[[t]] = eta_t
+  lambdas = lapply(etas, function(x) {
+    exp(x[2:17])
+  })
+  sigmas = lapply(etas, function(eta){
+    phi = exp(eta[1])
+    lambda = exp(eta[2:17])
+    return(getSigma(phi, lambda))
+  })
+  loglik = 0
+  for (i in seq(t-h, t+h)) {
+    loglik = loglik + dmvnorm(Y[[i]], A%*%lambdas[[t]], A%*%sigmas[[t]]%*%t(A), log=TRUE)
+#     loglik = loglik -1/2*(det(A%*%sigmas[[i]]%*%t(A))+
+#                             t(Y[[i]]-A%*%lambdas[[i]])%*%solve(A%*%sigmas[[i]]%*%t(A))%*%(Y[[i]]-A%*%lambdas[[i]]))
+  }
+  return(logprior + loglik)
+}
+
 ## Run EM for every window
 runEM_1.4 <- function(Y, verbose=1, debug=0) {
   # debug 1: break in EM loop
@@ -144,4 +170,20 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
     }
   }
   return(thetas_t)
+}
+
+plot_1.4 = function(thetas_t) {
+  df = do.call(rbind, thetas_t)
+  lambdas = data.frame(df[ ,2:ncol(df)])
+  lambdas = stack(lambdas)
+
+  names = unique(router1$nme)
+  names = names[grep("->", names)]
+  names = factor(names, levels = names)
+
+  lambdas$names = rep(names, each=277)
+
+  p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() + xlab('hour of day') + ylab('bytes/sec') +
+    ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
+  p + facet_wrap(~ names)
 }
