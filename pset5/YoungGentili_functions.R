@@ -117,6 +117,29 @@ g = function(eta_t, etas, sigmas_cond, t, Y, h=5, debug=FALSE) {
   return(logprior + loglik)
 }
 
+getQ.prior = function(theta_t, thetas, t, sigmas_cond, A, y, w=11, debug=0) {
+  if (debug==2) {
+    browser()
+  }
+  logprior = dmvnorm(theta_t, mean=thetas[[t-1]], sigmas_cond[[t]], log=TRUE)
+  phi = theta[1]
+  lambdas = theta[2:length(theta)]
+  sigma11 = getSigma(phi, lambdas)
+  sigma12 = sigma11 %*% t(A)
+  sigma21 = A %*% sigma11
+  sigma22 = A %*% sigma11 %*% t(A)
+  mu1 = lambdas
+  mu2 = A %*% lambdas
+  s = 0
+  for (t in 1:nrow(y)) {
+    a = y[t, ]
+    m_t = mu1 + sigma12 %*% solve(sigma22) %*% (a - mu2)
+    s = s + t(m_t - lambdas) %*% solve(sigma11) %*% (m_t - lambdas)
+  }
+  R = sigma11 - sigma12 %*% solve(sigma22) %*% sigma21
+  return(logprior-w/2*(log(det(sigma11)) + tr(solve(sigma11) %*% R)) - s/2)
+}
+
 ## Run EM for every window
 runEM_1.4 <- function(Y, verbose=1, debug=0) {
   # debug 1: break in EM loop

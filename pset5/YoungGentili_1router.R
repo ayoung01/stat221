@@ -1,6 +1,7 @@
 library(scales)
 library(mvtnorm)
 library(numDeriv)
+library(lattice)
 source('YoungGentili_functions.R')
 
 router1 = read.csv("1router_allcount.dat")
@@ -142,6 +143,14 @@ for (t in 11:282) {
   phi = exp(etas[[t]][1])
   lambdas = exp(etas[[t]][2:length(etas[[t]])])
 #   J = get.J(phi=phi, lambdas=lambdas, Y=Y[(t-h):(t+h), ], A=A, c=2, debug=FALSE)
-  J = hessian(getQ, c(phi, lambdas), A=A, y=Y[seq(t-h, t+h), ], debug=2)
+  J = hessian(getQ, c(phi, lambdas), A=A, y=Y[seq(t-h, t+h), ], debug=0)
   sigmas[[t]] = solve(-solve(sigmas.cond[[t]]) + J)
+}
+
+thetas_1.6 = lapply(etas, exp)
+for (i in 1:5) {
+  thetas_1.6[i] = NULL
+}
+for (i in 272:282) {
+  thetas_1.6[i] = thetas_t[i]
 }
