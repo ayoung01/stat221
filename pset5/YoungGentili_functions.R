@@ -10,7 +10,7 @@ getSigma = function(phi, lambdas, c=2) {
   }
   return(phi * sigma)
 }
-getQ = function(theta, A, y, w=11, debug=0) {
+getQ = function(theta, A, y, c=2, w=11, debug=0, verbose=0) {
   if (debug==2) {
     browser()
   }
@@ -29,7 +29,14 @@ getQ = function(theta, A, y, w=11, debug=0) {
     s = s + t(m_t - lambdas) %*% solve(sigma11) %*% (m_t - lambdas)
   }
   R = sigma11 - sigma12 %*% solve(sigma22) %*% sigma21
-  return(-w/2*(log(det(sigma11)) + tr(solve(sigma11) %*% R)) - s/2)
+  Q = -w/2*(sum(log(diag(sigma11))) + tr(solve(sigma11) %*% R)) - s/2
+  if (is.infinite(Q)){
+    browser()
+  }
+  if (verbose>2) {
+    print('Q: '%+%Q)
+  }
+  return(Q)
 }
 
 get.m_t = function(phi, lambdas, y_t, A) {
@@ -121,9 +128,17 @@ getQ.prior = function(theta_t, thetas, t, sigmas_cond, A, y, w=11, debug=0) {
   if (debug==2) {
     browser()
   }
+  thetas[[t]] = theta_t
   logprior = dmvnorm(theta_t, mean=thetas[[t-1]], sigmas_cond[[t]], log=TRUE)
-  phi = theta[1]
-  lambdas = theta[2:length(theta)]
+  if (is.infinite(logprior)) {
+    logprior = 0 # hackish thing
+    print('oops infinite logprior')
+  }
+  if (debug==2) {
+    print('logprior'%+%logprior)
+  }
+  phi = theta_t[1]
+  lambdas = theta_t[2:length(theta_t)]
   sigma11 = getSigma(phi, lambdas)
   sigma12 = sigma11 %*% t(A)
   sigma21 = A %*% sigma11
@@ -141,7 +156,7 @@ getQ.prior = function(theta_t, thetas, t, sigmas_cond, A, y, w=11, debug=0) {
 }
 
 ## Run EM for every window
-runEM_1.4 <- function(Y, verbose=1, debug=0) {
+locally_iid_EM <- function(data, c=2, A, I=16, verbose=1, debug=0, reltol=1e-8) {
   # debug 1: break in EM loop
   # debug 2: break in getQ
   thetas_t = list()
@@ -155,14 +170,16 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
     lambdas.init = rep(1, I)
     theta = c(phi.init, lambdas.init)
     # get window of 11 data points
-    y = Y[(t-(w-1)/2):t+(w-1)/2, ]
+    y = data[(t-(w-1)/2):t+(w-1)/2, ]
 
     epsilon = 1e-4
     counter = 0
+    Q = Inf
+
     # repeat while EM has not converged
     repeat {
       # E-step
-      Q = getQ(theta, A, y, w=w, debug=debug)
+      Q = getQ(theta, A, y, w=w, debug=debug, verbose=verbose)
       if (debug == 1) {
         browser()
       }
@@ -170,14 +187,25 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
       # M-step
       fit <- optim(par=theta,
                    fn=getQ,
-                   method="Nelder-Mead",
+                   method="L-BFGS-B",
                    lower=c(1e-4, rep(0.1, I)), # phi > 0 and lambda > 0
-                   control=list(fnscale=-1),
-                   A=A, y=y, w=w)
+#                    upper=c(1e4, rep(1e6, I)),
+                   control=list(fnscale=-1, reltol=reltol),
+                   A=A, y=y, w=w, c=c, verbose=verbose)
+
+
+      if (verbose > 1) {
+        print('Q at iteration '%+%counter%+%': '%+%fit$value)
+        print('old Q: '%+%Q)
+        if (verbose > 2) {
+          print('old theta')
+          print(theta)
+          print('new theta')
+          print(fit$par)
+        }
+      }
       theta = fit$par
       counter = counter + 1
-
-      if (verbose > 1) print('Q at iteration '%+%counter%+%': '%+%fit$value)
 
       if (fit$value - Q < epsilon) {
         if (verbose) {
@@ -186,6 +214,7 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
         break
       }
     }
+
     thetas_t[[t]] = theta
     if (verbose > 0) {
       print(theta)
@@ -193,20 +222,4 @@ runEM_1.4 <- function(Y, verbose=1, debug=0) {
     }
   }
   return(thetas_t)
-}
-
-plot_1.4 = function(thetas_t) {
-  df = do.call(rbind, thetas_t)
-  lambdas = data.frame(df[ ,2:ncol(df)])
-  lambdas = stack(lambdas)
-
-  names = unique(router1$nme)
-  names = names[grep("->", names)]
-  names = factor(names, levels = names)
-
-  lambdas$names = rep(names, each=277)
-
-  p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() + xlab('hour of day') + ylab('bytes/sec') +
-    ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
-  p + facet_wrap(~ names)
 }

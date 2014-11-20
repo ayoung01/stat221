@@ -82,7 +82,7 @@ Y = do.call(rbind, tapply(links$value, links$time, function(x) x))
 colnames(Y) = links$nme[1:8]
 Y = Y[, -ncol(Y)] # drop last column so we have linearly independent link measurements
 
-thetas_t = runEM_1.4(Y, debug=0, verbose=2)
+thetas_t = locally_iid_EM(data=Y, A=A, c=2, debug=0, verbose=2)
 
 df = do.call(rbind, thetas_t)
 lambdas = data.frame(df[ ,2:ncol(df)])
@@ -97,7 +97,6 @@ lambdas$names = rep(names, each=277)
 p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() + xlab('hour of day') + ylab('bytes/sec') +
   ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
 p = p + facet_wrap(~ names)
-plot_1.4(thetas_t)
 
 
 # 1.6 ---------------------------------------------------------------------
@@ -129,28 +128,96 @@ Y.list = split(Y, 1:nrow(Y))
 # g(etas[[12]], etas, sigmas.cond, 13, Y.list, debug=T)
 
 ### iterate through all time points
+# for (t in 11:282) {
+#   print(t)
+#   sigmas.cond[[t]] = sigmas[[t-1]] + V
+#   fit <- optim(par=etas[[t-1]],
+#                fn=g,
+#                method="Nelder-Mead",
+#                control=list(fnscale=-1),
+#                etas=etas, sigmas_cond=sigmas.cond, t=t, Y=Y.list)
+#   print(fit$par)
+#   print(fit$value)
+#   etas[[t]] = fit$par
+#   phi = exp(etas[[t]][1])
+#   lambdas = exp(etas[[t]][2:length(etas[[t]])])
+#   J = hessian(getQ, c(phi, lambdas), A=A, y=Y[seq(t-h, t+h), ], debug=0)
+#   sigmas[[t]] = solve(-solve(sigmas.cond[[t]]) + J)
+# }
+
+source('YoungGentili_functions.R')
+thetas = thetas_t
+V = 1e5*diag(I + 1)
+
+sigmas = list()
+sigmas.cond = list()
+for (i in 1:287) {
+  sigmas[[i]] = diag(I + 1)
+  sigmas.cond[[i]] = diag(I + 1)
+}
+
+### iterate through all time points
 for (t in 11:282) {
   print(t)
   sigmas.cond[[t]] = sigmas[[t-1]] + V
-  fit <- optim(par=etas[[t-1]],
-               fn=g,
-               method="Nelder-Mead",
+  fit <- optim(par=thetas[[t-1]],
+               fn=getQ.prior,
+               method="L-BFGS-B",
+               lower=c(1e-4, rep(0.1, I)),
                control=list(fnscale=-1),
-               etas=etas, sigmas_cond=sigmas.cond, t=t, Y=Y.list)
+               thetas=thetas, sigmas_cond=sigmas.cond,
+               t=t, y=Y[seq(t-h, t+h),], A=A, debug=0)
   print(fit$par)
   print(fit$value)
-  etas[[t]] = fit$par
-  phi = exp(etas[[t]][1])
-  lambdas = exp(etas[[t]][2:length(etas[[t]])])
-#   J = get.J(phi=phi, lambdas=lambdas, Y=Y[(t-h):(t+h), ], A=A, c=2, debug=FALSE)
-  J = hessian(getQ, c(phi, lambdas), A=A, y=Y[seq(t-h, t+h), ], debug=0)
-  sigmas[[t]] = solve(-solve(sigmas.cond[[t]]) + J)
+  thetas[[t]] = fit$par
+  J = hessian(getQ, thetas[[t]], A=A, y=Y[seq(t-h, t+h), ], debug=0)
+  J[1, 1] = 1 # hackish thing
+  sigmas[[t]] = solve(solve(-sigmas.cond[[t]]) + J)
 }
 
-thetas_1.6 = lapply(etas, exp)
-for (i in 1:5) {
-  thetas_1.6[i] = NULL
-}
-for (i in 272:282) {
-  thetas_1.6[i] = thetas_t[i]
-}
+### plot
+
+df = do.call(rbind, thetas)
+lambdas = data.frame(df[ ,2:ncol(df)])
+lambdas = stack(lambdas)
+
+names = names[grep("->", names)]
+names = factor(names, levels = names)
+
+lambdas$names = rep(names, each=277)
+
+p = ggplot(lambdas, aes(x=rep(6:282*5/60, 16), y=lambdas$values)) + geom_line() + xlab('hour of day') + ylab('bytes/sec') +
+  ylim(0, 1e6) + scale_x_continuous(breaks=seq(0, 24, 4)) + ggtitle('Mean Traffic Estimates lambda_t for all OD Pairs' )
+p + facet_wrap(~ names)
+
+# 1.9 ---------------------------------------------------------------------
+source('YoungGentili_functions.R')
+I2 = 64
+# J x I incidence matrix
+A2 = matrix(c(rep(1, 8), rep(0, 56),
+             rep(0, 8), rep(1, 8), rep(0, 48),
+             rep(0, 16), rep(1, 8), rep(0, 40),
+             rep(0, 24), rep(1, 8), rep(0, 32),
+             rep(0, 32), rep(1, 8), rep(0, 24),
+             rep(0, 40), rep(1, 8), rep(0, 16),
+             rep(0, 48), rep(1, 8), rep(0, 8),
+             rep(0, 56), rep(1, 8),
+             rep(c(1,0,0,0,0,0,0,0), 8),
+             rep(c(0,1,0,0,0,0,0,0), 8),
+             rep(c(0,0,1,0,0,0,0,0), 8),
+             rep(c(0,0,0,1,0,0,0,0), 8),
+             rep(c(0,0,0,0,1,0,0,0), 8),
+             rep(c(0,0,0,0,0,1,0,0), 8),
+             rep(c(0,0,0,0,0,0,1,0), 8)), ncol=64, byrow=T)
+
+Y2 = do.call(rbind, tapply(router2$value, router2$time, function(x) x))
+colnames(Y2) = router2$nme[1:16]
+Y2 = Y2[, -ncol(Y2)]
+
+thetas2_t = locally_iid_EM(data=Y2, A=A2, c=2, I=I2, debug=0, verbose=2)
+
+
+
+
+
+
