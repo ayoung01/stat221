@@ -17,6 +17,10 @@ getQ = function(theta, A, y, c=2, w=11, debug=0, verbose=0) {
   phi = theta[1]
   lambdas = theta[2:length(theta)]
   sigma11 = getSigma(phi, lambdas)
+  sigma11.inverse = sigma11
+  for (i in 1:nrow(sigma11)) {
+    sigma11.inverse[i, i] = 1 / sigma11[i, i]
+  }
   sigma12 = sigma11 %*% t(A)
   sigma21 = A %*% sigma11
   sigma22 = A %*% sigma11 %*% t(A)
@@ -26,10 +30,10 @@ getQ = function(theta, A, y, c=2, w=11, debug=0, verbose=0) {
   for (t in 1:nrow(y)) {
     a = y[t, ]
     m_t = mu1 + sigma12 %*% solve(sigma22) %*% (a - mu2)
-    s = s + t(m_t - lambdas) %*% solve(sigma11) %*% (m_t - lambdas)
+    s = s + t(m_t - lambdas) %*% sigma11.inverse %*% (m_t - lambdas)
   }
   R = sigma11 - sigma12 %*% solve(sigma22) %*% sigma21
-  Q = -w/2*(sum(log(diag(sigma11))) + tr(solve(sigma11) %*% R)) - s/2
+  Q = -w/2*(sum(log(diag(sigma11))) + tr(sigma11.inverse %*% R)) - s/2
   if (is.infinite(Q)){
     browser()
   }
@@ -132,6 +136,7 @@ getQ.prior = function(theta_t, thetas, t, sigmas_cond, A, y, w=11, debug=0) {
   logprior = dmvnorm(theta_t, mean=thetas[[t-1]], sigmas_cond[[t]], log=TRUE)
   if (is.infinite(logprior)) {
     logprior = 0 # hackish thing
+    browser()
     print('oops infinite logprior')
   }
   if (debug==2) {
@@ -140,6 +145,10 @@ getQ.prior = function(theta_t, thetas, t, sigmas_cond, A, y, w=11, debug=0) {
   phi = theta_t[1]
   lambdas = theta_t[2:length(theta_t)]
   sigma11 = getSigma(phi, lambdas)
+  sigma11.inverse = sigma11
+  for (i in 1:nrow(sigma11)) {
+    sigma11.inverse[i, i] = 1 / sigma11[i, i]
+  }
   sigma12 = sigma11 %*% t(A)
   sigma21 = A %*% sigma11
   sigma22 = A %*% sigma11 %*% t(A)
@@ -149,10 +158,10 @@ getQ.prior = function(theta_t, thetas, t, sigmas_cond, A, y, w=11, debug=0) {
   for (t in 1:nrow(y)) {
     a = y[t, ]
     m_t = mu1 + sigma12 %*% solve(sigma22) %*% (a - mu2)
-    s = s + t(m_t - lambdas) %*% solve(sigma11) %*% (m_t - lambdas)
+    s = s + t(m_t - lambdas) %*% sigma11.inverse %*% (m_t - lambdas)
   }
   R = sigma11 - sigma12 %*% solve(sigma22) %*% sigma21
-  return(logprior-w/2*(log(det(sigma11)) + tr(solve(sigma11) %*% R)) - s/2)
+  return(logprior-w/2*(log(det(sigma11)) + tr(sigma11.inverse %*% R)) - s/2)
 }
 
 ## Run EM for every window
