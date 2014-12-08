@@ -30,15 +30,68 @@ propose.edge = function( G ) {
   return( sample(1:n_vertices, 2))
 }
 
+ERGM.edges = function( G ) {
+  return(sum(G)/2)
+}
+
+#defined as three edges that are mutually adjacent
+ERGM.triangles = function( G ) {
+  r1 = 0
+  n = ncol(G)
+  for( i in 3:n) {
+    for( j in 2:(i-1)) {
+      for( k in 1:(j-1)) {
+        r1 = r1 + G[i,j]*G[j,k]*G[k,i]
+      }
+    }
+  }
+  return(r1)
+}
+
+#two star is defined by two edges being connected at a vertex
+ERGM.twostars = function( G ) {
+  r2 = 0
+  n = ncol(G)
+  for( i in 3:n ) {
+    for( j in 2:(i-1)) {
+      for( k in 1:(j-1)) {
+        r2 = r2 + G[i,j]*G[j,k] + G[j,k]*G[k,i] + G[k,i]*G[i,j]
+      }
+    }
+  }
+  return(r2)
+}
+
+ERGM.edges.diff = function(G, edge) {
+  r1 = 1
+  return(r1)
+}
+
+ERGM.triangles.diff = function(G, edge) {
+  r2 = 0
+  for(k in 1:ncol(G)) {
+    if( k != edge[1] && k != edge[2]) {
+      r2 = r2 + G[edge[2],k]*G[k,edge[1]]
+    }
+  }
+  return( r2 )
+}
+
+ERGM.twostars.diff = function(G, edge) {
+  r3 = 0
+  for(k in 1:ncol(G)) {
+    if( k != edge[1] && k != edge[2]) {
+      r3 = r3 + G[edge[1],k] + G[k,edge[2]]
+    }
+  }
+  return(r3)
+}
+
 #based off of Bartz paper
-#todo: are we considering directed edges?
 #using MCMC
-#using gibbs sampling: given current graph, what is conditional probability of graph with one edge changed?
 ERGM.MCMC = function( G_0, theta_0, ss, n_iters = ncol(G_0)*(ncol(G_0)-1)) {
-  #n = ncol(G_0)
   graphs = vector("list", n_iters)
   graph.old = G_0
-  #graphs[[1]] = G_0
   for (i in 2:n_iters) {
     graph.new = toggle.random.edge(graph.old)
     acceptance.prob = exp(ERGM.log.prob(graph.new, theta_0, ss) - ERGM.log.prob(graph.old, theta_0, ss))
@@ -64,105 +117,15 @@ ERGM.MCMC.fast = function( G_0, theta_0, ss, ss.diff, n_iters = ncol(G_0)*(ncol(
   return(graph.old)
 }
 
-#takes in graph and outputs sufficient statistics
-ERGM.sufficient.statistic = function( G ) {
-  return(as.matrix(sum(G)/2)) #number of edges for now
-}
-
-ERGM.edges.ss = function( G ) {
-  return(as.matrix(ERGM.edges(G)))
-}
-
-ERGM.edges.ss.diff = function( G, edge ) {
-    res = ERGM.edges.diff(G, edge)
-    if(G[edge[1],edge[2]] == 1) {
-      res = -1*res
-    }
-    return(as.matrix(res))
-}
-ERGM.triad.ss = function( G) {
-  res = numeric(3)
-  res[1] = ERGM.edges(G)
-  res[2] = ERGM.triangles(G)
-  res[3] = ERGM.twostars(G)
-  return(as.matrix(res))
-}
-
-ERGM.edges = function( G ) {
-  return(sum(G)/2)
-}
-
-#defined as three edges that are mutually adjacent
-ERGM.triangles = function( G ) {
-  res = 0
-  n = ncol(G)
-  for( i in 3:n) {
-    for( j in 1:(i-1)) {
-      for( k in 1:(j-1))
-        res = res + G[i,j]*G[j,k]*G[k,i]
-    }
-  }
-  return(res)
-}
-
-#two star is defined by two edges being connected at a vertex
-ERGM.twostars = function( G ) {
-  res = 0
-  n = ncol(G)
-  for( i in 3:n ) {
-    for( j in 1:(i-1)) {
-      for( k in 1:(j-1)) {
-        res = res + G[i,j]*G[j,k] + G[j,k]*G[k,i] + G[k,i]*G[i,j]
-      }
-    }
-  }
-  return(res)
-}
-
-ERGM.triad.ss.diff = function( G, edge ) {
-  res = numeric(3)
-  res[1] = ERGM.edges.diff(G, edge)
-  res[2] = ERGM.triangles.diff(G, edge)
-  res[3] = ERGM.twostars.diff(G, edge)
-  if(G[edge[1],edge[2]] == 1) {
-    res = -1*res
-  }
-  return(as.matrix(res))
-}
-
-ERGM.edges.diff = function(G, edge) {
-  res = 1
-  return(res)
-}
-
-ERGM.triangles.diff = function(G, edge) {
-  res = 0
-  for(k in 1:ncol(G)) {
-    if( k != edge[1] && k != edge[2]) {
-      res = res + G[edge[2],k]*G[k,edge[1]]
-    }
-  }
-}
-
-ERGM.twostars.diff = function(G, edge) {
-  res = 0
-  for(k in 1:ncol(G)) {
-    if( k != edge[1] && k != edge[2]) {
-      res = res + G[edge[1],k] + G[k,edge[2]]
-    }
-  }
-  return(res)
-}
-
 avg.over.list = function( l ) {
   s = 0
   for( i in l) {
     s = s + i
   }
-  return( s/length(l))
+  return( as.matrix(s/length(l)))
 }
 
-#todo: How to choose G_0?
+#todo: How to choose G_0 + C?
 SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 1, ss.diff = NULL) {
   n.iters = length(G.data)
   thetas = vector("list", n.iters)
@@ -177,24 +140,21 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 
         G.samples[[j]] = ERGM.MCMC(G_0, thetas[[i-1]], ss)  
       }
     }
-    #G.old = ERGM.MCMC(G_0, thetas[[i-1]], ss) # only obtain one sample each time
-    #s.avg = ss(G.old)
     s.avg = avg.over.list(lapply(G.samples, ss))
-    #print(s.avg)
-    C = diag(ncol(s.avg))
+    #print(sprintf("s.avg %s", s.avg))
+    #print(sprintf("ss(G.data) %s", ss(G.data[[i]])))
+    C = diag(nrow(s.avg))
     thetas[[i]] = thetas[[i-1]] + a*C%*%( ss(G.data[[i]])- s.avg )
   }
   return(thetas)
 }
 
-#Bernoulli ERGM model where every edge is present at fixed probability
-#e^theta/(1+e^theta)
-Toulis.generate.graph = function(n, theta) {
+#n = number of nodes, p= probability of particular edge existing
+generate.random.graph = function(n, p) {
   x = matrix(0, n, n)
   for(i in 2:n) {
     for(j in 1:(i-1)) {
-      #print(sprintf("%s %s", i, j))
-      if( runif(1) < exp(theta)/(1+exp(theta))) {
+      if( runif(1) < p) {
         x[j,i] = 1
         x[i,j] = 1
       }
@@ -207,18 +167,6 @@ simple.learning.rate = function( i ) {
   return(1/i)
 }
 
-n.iters = 100
-theta = -0.9
-n = 18
-n.samples = 3
-G.data = vector("list", n.iters)
-for(i in 1:n.iters) {
-  G.data[[i]] = Toulis.generate.graph(n, theta)
+parameter.learning.rate = function( i, a = 1) {
+  return(a/i)
 }
-
-theta_0 = as.matrix(-0.1)
-start = proc.time()
-#res = SGD.Monte.Carlo(G.data, G.data[[1]], theta_0, ERGM.edges.ss, simple.learning.rate, n.samples)
-res = SGD.Monte.Carlo(G.data, G.data[[1]], theta_0, ERGM.edges.ss, simple.learning.rate, n.samples, ERGM.edges.ss.diff)
-end = proc.time()
-print( end - start )
