@@ -1,4 +1,7 @@
-#graph is stored as adjaceny matrix
+`%+%` <- function (x, y) {
+  paste(x, y, sep = "")
+}
+#graph is stored as an adjacency matrix
 
 ERGM.prob = function( G, theta, ss ) {
   return(exp(t(theta) %*% ss(G))[1,1])
@@ -113,7 +116,7 @@ ERGM.MCMC.fast = function( G_0, theta_0, ss, ss.diff, n_iters = ncol(G_0)*(ncol(
       graph.old = toggle.edge(graph.old, edge.proposal)
     }
   }
-  
+
   return(graph.old)
 }
 
@@ -125,11 +128,12 @@ avg.over.list = function( l ) {
   return( as.matrix(s/length(l)))
 }
 
-#todo: How to choose G_0 + C?
+#TODO: How to choose G_0 and C?
 SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 1, ss.diff = NULL) {
   n.iters = length(G.data)
   thetas = vector("list", n.iters)
   thetas[[1]] = theta_0
+  pb <- txtProgressBar(min = 0, max = n.iters, style = 3)
   for( i in 2:n.iters ) {
     a = learning.rate(i)
     G.samples = vector("list", n.samples)
@@ -137,7 +141,7 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 
       if( typeof(ss.diff) == "closure" ) {
         G.samples[[j]] = ERGM.MCMC.fast(G_0, thetas[[i-1]], ss, ss.diff)
       } else {
-        G.samples[[j]] = ERGM.MCMC(G_0, thetas[[i-1]], ss)  
+        G.samples[[j]] = ERGM.MCMC(G_0, thetas[[i-1]], ss)
       }
     }
     s.avg = avg.over.list(lapply(G.samples, ss))
@@ -145,7 +149,9 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 
     #print(sprintf("ss(G.data) %s", ss(G.data[[i]])))
     C = diag(nrow(s.avg))
     thetas[[i]] = thetas[[i-1]] + a*C%*%( ss(G.data[[i]])- s.avg )
+    setTxtProgressBar(pb, i)
   }
+  close(pb)
   return(thetas)
 }
 

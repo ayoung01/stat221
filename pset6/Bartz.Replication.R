@@ -39,7 +39,7 @@ ERGM.ET.ss.diff = function( G, edge ) {
 ERGM.triad.generate.samples = function(n.nodes, n.samples, theta.actual) {
   G_0 = generate.random.graph(n.nodes, 0.5)
   G.samples = vector("list", n.samples)
-  
+
   #let markov chain mix a lot for first sample
   G.samples[[1]] = ERGM.MCMC.fast( G_0, theta.actual, ERGM.triad.ss, ERGM.triad.ss.diff, n.nodes**3 )
   for( i in 2:n.samples) {
@@ -51,7 +51,7 @@ ERGM.triad.generate.samples = function(n.nodes, n.samples, theta.actual) {
 ERGM.ET.generate.samples = function(n.nodes, n.samples, theta.actual) {
   G_0 = generate.random.graph(n.nodes, 0.5)
   G.samples = vector("list", n.samples)
-  
+
   #let markov chain mix a lot for first sample
   G.samples[[1]] = ERGM.MCMC.fast( G_0, theta.actual, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**3 )
   for( i in 2:n.samples) {
@@ -86,31 +86,36 @@ Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000) {
   print(sprintf("Num samples before: ", length(G.samples)))
   G.samples = ERGM.ET.filter.degenerates(G.samples)
   print(sprintf("Num samples after: ", length(G.samples)))
-  
+
   theta_0 = as.matrix(c(-0.1,-0.1))
   n.samples.per.iter = 1
-  res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.ET.ss, 
+  res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.ET.ss,
                         simple.learning.rate, n.samples.per.iter, ERGM.ET.ss.diff)
+  print('Actual theta: '%+%theta.actual)
+  print('Predicted theta: '%+%res[[n.samples]])
 }
 
 Bartz.triad.experiment = function(n.nodes = 100, n.samples = 1000) {
   theta.actual = as.matrix(rnorm(3, -1, 1))
+  print('Generating samples...')
   G.samples = ERGM.triad.generate.samples(n.nodes, n.samples, theta.actual)
   #x = avg.over.list(lapply(G.samples, ERGM.triad.ss))
   #check for degeneracy of ERGM samples (meaning that won't be able to use for model)
+  print('Filtering degenerates...')
   G.samples = ERGM.triad.filter.degenerates(G.samples)
-  
+  print('Done!')
   theta_0 = as.matrix(c(-0.1,-0.1, -0.1))
   n.samples.per.iter = 1
-  res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.triad.ss, 
+  res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.triad.ss,
                         simple.learning.rate, n.samples.per.iter, ERGM.triad.ss.diff)
-} 
+  print('Actual theta: '%+%theta.actual)
+  print('Predicted theta: '%+%res[[n.samples]])
+}
 
 n.nodes = 50
 n.samples = 1000
-#Bartz.triad.experiment(n.nodes, n.samples)
+res = Bartz.triad.experiment(n.nodes, n.samples)
 res = Bartz.ET.experiment(n.nodes, n.samples)
-
 
 
 
