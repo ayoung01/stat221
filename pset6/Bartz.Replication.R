@@ -32,30 +32,6 @@ ERGM.ET.ss.diff = function( G, edge ) {
   return(as.matrix(res))
 }
 
-ERGM.triad.generate.samples = function(n.nodes, n.samples, theta.actual) {
-  G_0 = generate.random.graph(n.nodes, 0.5)
-  G.samples = vector("list", n.samples)
-
-  #let markov chain mix a lot for first sample
-  G.samples[[1]] = ERGM.MCMC.fast( G_0, theta.actual, ERGM.triad.ss, ERGM.triad.ss.diff, n.nodes**3 )
-  for( i in 2:n.samples) {
-    G.samples[[i]] = ERGM.MCMC.fast( G.samples[[i-1]], theta.actual, ERGM.triad.ss, ERGM.triad.ss.diff, n.nodes**2 )
-  }
-  return(G.samples)
-}
-
-ERGM.ET.generate.samples = function(n.nodes, n.samples, theta.actual) {
-  G_0 = generate.random.graph(n.nodes, 0.5)
-  G.samples = vector("list", n.samples)
-
-  #let markov chain mix a lot for first sample
-  G.samples[[1]] = ERGM.MCMC.fast( G_0, theta.actual, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**3 )
-  for( i in 2:n.samples) {
-    G.samples[[i]] = ERGM.MCMC.fast( G.samples[[i-1]], theta.actual, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**2 )
-  }
-  return(G.samples)
-}
-
 ERGM.triad.filter.degenerates = function(G.samples) {
   min.edges = 0
   max.edges = ncol(G.samples[[1]])*(ncol(G.samples[[1]] - 1))
@@ -76,8 +52,8 @@ ERGM.ET.filter.degenerates = function(G.samples) {
                        num.twostars > min.twostars && num.twostars < max.twostars])
 }
 
-Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000, init.G=NULL,
-                               init.theta.actual=NULL, debug=F) {
+Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000, n.draws=10, init.G=NULL,
+                               init.theta.actual=NULL, use.pkg=T, debug=F) {
   theta.actual = as.matrix(rnorm(2, -1, 1))
   if (!is.null(init.theta.actual)) {
     theta.actual = init.theta.actual
@@ -94,9 +70,8 @@ Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000, init.G=NULL,
   }
 
   theta_0 = as.matrix(c(-0.1,-0.1))
-  n.draws = 10
   res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.ET.ss,
-                        simple.learning.rate, n.draws, ERGM.ET.ss.diff, debug=debug)
+                        simple.learning.rate, n.draws, ERGM.ET.ss.diff, use.pkg=use.pkg, debug=debug)
   print('Actual theta: '%+%theta.actual)
   print('Predicted theta: '%+%res[[n.samples]])
   return(res)
@@ -121,22 +96,10 @@ Bartz.triad.experiment = function(n.nodes = 100, n.samples = 1000) {
 }
 
 n.nodes = 50
-n.samples = 1000
+n.samples = 100
 # res = Bartz.triad.experiment(n.nodes, n.samples)
 
 theta.ET.actual = as.matrix(rnorm(2, -1, 1))
-# init.ET.G = ERGM.ET.generate.samples(n.nodes, n.samples, theta.ET.actual)
-# res = Bartz.ET.experiment(n.nodes, n.samples, init.ET.G, theta.ET.actual, debug=F)
-
-# res = Bartz.ET.experiment(n.nodes, 100, init.ET.G[1:100], theta.ET.actual, debug=F)
-
-
-
-
-g.sim = simulate(network(n.nodes, directed=F) ~ edges + twopath, nsim= 10, coef=theta.ET.actual)
-g.sim.mat = lapply(g.sim, as.matrix)
-res = Bartz.ET.experiment(n.nodes, 10, g.sim.mat, theta.ET.actual, debug=F)
-
-
-
+init.ET.G = ERGM.ET.generate.samples(n.nodes, n.samples, theta.ET.actual, use.pkg=T)
+res = Bartz.ET.experiment(n.nodes, n.samples, n.draws=100, init.ET.G, theta.ET.actual, use.pkg=T, debug=F)
 

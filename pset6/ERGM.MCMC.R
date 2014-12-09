@@ -133,6 +133,36 @@ ERGM.MCMC.fast = function( G_0, theta_0, ss, ss.diff, n_iters = ncol(G_0)*(ncol(
   return(graph.old)
 }
 
+ERGM.triad.generate.samples = function(n.nodes, n.samples, theta.actual) {
+  G_0 = generate.random.graph(n.nodes, 0.5)
+  G.samples = vector("list", n.samples)
+
+  #let markov chain mix a lot for first sample
+  G.samples[[1]] = ERGM.MCMC.fast( G_0, theta.actual, ERGM.triad.ss, ERGM.triad.ss.diff, n.nodes**3 )
+  for( i in 2:n.samples) {
+    G.samples[[i]] = ERGM.MCMC.fast( G.samples[[i-1]], theta.actual, ERGM.triad.ss, ERGM.triad.ss.diff, n.nodes**2 )
+  }
+  return(G.samples)
+}
+
+ERGM.ET.generate.samples = function(n.nodes, n.samples, theta.actual, use.pkg=T) {
+  if (use.pkg) {
+    G.samples = simulate(network(n.nodes, directed=F) ~ edges + twopath, nsim=n.samples, coef=theta.actual)
+    G.samples = lapply(G.samples, as.matrix)
+  }
+  else {
+    G_0 = generate.random.graph(n.nodes, 0.5)
+    G.samples = vector("list", n.samples)
+
+    #let markov chain mix a lot for first sample
+    G.samples[[1]] = ERGM.MCMC.fast( G_0, theta.actual, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**3 )
+    for( i in 2:n.samples) {
+      G.samples[[i]] = ERGM.MCMC.fast( G.samples[[i-1]], theta.actual, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**2 )
+    }
+  }
+  return(G.samples)
+}
+
 avg.over.list = function( l ) {
   s = 0
   for( i in l) {
@@ -142,25 +172,34 @@ avg.over.list = function( l ) {
 }
 
 #TODO: How to choose G_0 and C?
-SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.draws = 50,
-                           ss.diff = NULL, debug=F) {
+SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.draws = 1,
+                           ss.diff = NULL, use.pkg=T, debug=F) {
+  n.nodes = ncol(G_0)
   n.iters = length(G.data)
   thetas = vector("list", n.iters)
   thetas[[1]] = theta_0
   pb <- txtProgressBar(min = 0, max = n.iters, style = 3)
   for( i in 2:n.iters ) {
     a = learning.rate(i)
-    G.samples = vector("list", n.draws)
-    for( j in 1:n.draws) {
-      if( typeof(ss.diff) == "closure" ) {
-        G.samples[[j]] = ERGM.MCMC.fast(G_0, thetas[[i-1]], ss, ss.diff)
-      } else {
-        G.samples[[j]] = ERGM.MCMC(G_0, thetas[[i-1]], ss)
+    if (use.pkg) {
+      G.samples = ERGM.ET.generate.samples(n.nodes, n.draws, thetas[[i-1]], use.pkg=T)
+    } else {
+      G.samples = vector("list", n.draws)
+      for( j in 1:n.draws) {
+        if( typeof(ss.diff) == "closure" ) {
+          G.samples[[j]] = ERGM.MCMC.fast(G_0, thetas[[i-1]], ss, ss.diff)
+        } else {
+          G.samples[[j]] = ERGM.MCMC(G_0, thetas[[i-1]], ss)
+        }
       }
     }
+
     ss.list = lapply(G.samples, ss)
     ss.mat = do.call(cbind, ss.list)
-    # calculate Fisher information
+    if (debug){
+      browser()
+    }
+    # calculate condition matrix
     Fisher.hat = cov(t(ss.mat))
     C = solve(Fisher.hat)
 
@@ -169,14 +208,12 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.draws = 50
     #print(sprintf("ss(G.data) %s", ss(G.data[[i]])))
 
 #     C = diag(nrow(s.avg))
-    if (debug){
-      browser()
-    }
+
 
     # condition matrix should be inverse of Fisher information
     # Fisher information = variance of ss
     # can run separate SGD on Fisher information
-    thetas[[i]] = thetas[[i-1]] + a*C%*%( ss(G.data[[i]])- s.avg )
+    thetas[[i]] = thetas[[i-1]] + a*C%*%( (ss(G.data[[i]])- s.avg)/1000 )
     setTxtProgressBar(pb, i)
   }
   close(pb)
