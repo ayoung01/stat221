@@ -142,16 +142,16 @@ avg.over.list = function( l ) {
 }
 
 #TODO: How to choose G_0 and C?
-SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 10,
-                           ss.diff = NULL, C.init=NULL, debug=F) {
+SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.draws = 50,
+                           ss.diff = NULL, debug=F) {
   n.iters = length(G.data)
   thetas = vector("list", n.iters)
   thetas[[1]] = theta_0
   pb <- txtProgressBar(min = 0, max = n.iters, style = 3)
   for( i in 2:n.iters ) {
     a = learning.rate(i)
-    G.samples = vector("list", n.samples)
-    for( j in 1:n.samples) {
+    G.samples = vector("list", n.draws)
+    for( j in 1:n.draws) {
       if( typeof(ss.diff) == "closure" ) {
         G.samples[[j]] = ERGM.MCMC.fast(G_0, thetas[[i-1]], ss, ss.diff)
       } else {
@@ -159,9 +159,9 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 
       }
     }
     ss.list = lapply(G.samples, ss)
-    ss.mat = do.call(rbind, ss.list)
+    ss.mat = do.call(cbind, ss.list)
     # calculate Fisher information
-    Fisher.hat = cov(ss.mat)
+    Fisher.hat = cov(t(ss.mat))
     C = solve(Fisher.hat)
 
     s.avg = avg.over.list(ss.list)
@@ -171,9 +171,6 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, learning.rate, n.samples = 
 #     C = diag(nrow(s.avg))
     if (debug){
       browser()
-    }
-    if (!is.null(C.init)) {
-      C = C.init
     }
 
     # condition matrix should be inverse of Fisher information

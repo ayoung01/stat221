@@ -1,4 +1,5 @@
 source('ERGM.MCMC.R')
+library(ergm)
 
 ERGM.triad.ss = function( G) {
   res = numeric(3)
@@ -76,7 +77,7 @@ ERGM.ET.filter.degenerates = function(G.samples) {
 }
 
 Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000, init.G=NULL,
-                               init.theta.actual=NULL, C.init=NULL, debug=F) {
+                               init.theta.actual=NULL, debug=F) {
   theta.actual = as.matrix(rnorm(2, -1, 1))
   if (!is.null(init.theta.actual)) {
     theta.actual = init.theta.actual
@@ -93,9 +94,9 @@ Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000, init.G=NULL,
   }
 
   theta_0 = as.matrix(c(-0.1,-0.1))
-  n.samples.per.iter = 1
+  n.draws = 10
   res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.ET.ss,
-                        simple.learning.rate, n.samples.per.iter, ERGM.ET.ss.diff, C.init, debug=debug)
+                        simple.learning.rate, n.draws, ERGM.ET.ss.diff, debug=debug)
   print('Actual theta: '%+%theta.actual)
   print('Predicted theta: '%+%res[[n.samples]])
   return(res)
@@ -111,9 +112,9 @@ Bartz.triad.experiment = function(n.nodes = 100, n.samples = 1000) {
   G.samples = ERGM.triad.filter.degenerates(G.samples)
   print('Done!')
   theta_0 = as.matrix(c(-0.1,-0.1, -0.1))
-  n.samples.per.iter = 1
+  n.draws = 1
   res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.triad.ss,
-                        simple.learning.rate, n.samples.per.iter, ERGM.triad.ss.diff)
+                        simple.learning.rate, n.draws, ERGM.triad.ss.diff)
   print('Actual theta: '%+%theta.actual)
   print('Predicted theta: '%+%res[[n.samples]])
   return(res)
@@ -121,10 +122,21 @@ Bartz.triad.experiment = function(n.nodes = 100, n.samples = 1000) {
 
 n.nodes = 50
 n.samples = 1000
-C.init = diag(1/100, 2)
 # res = Bartz.triad.experiment(n.nodes, n.samples)
 
-# theta.ET.actual = as.matrix(rnorm(2, -1, 1))
+theta.ET.actual = as.matrix(rnorm(2, -1, 1))
 # init.ET.G = ERGM.ET.generate.samples(n.nodes, n.samples, theta.ET.actual)
-res = Bartz.ET.experiment(n.nodes, n.samples, init.ET.G, theta.ET.actual, C.init, debug=F)
+# res = Bartz.ET.experiment(n.nodes, n.samples, init.ET.G, theta.ET.actual, debug=F)
+
+# res = Bartz.ET.experiment(n.nodes, 100, init.ET.G[1:100], theta.ET.actual, debug=F)
+
+
+
+
+g.sim = simulate(network(n.nodes, directed=F) ~ edges + twopath, nsim= 10, coef=theta.ET.actual)
+g.sim.mat = lapply(g.sim, as.matrix)
+res = Bartz.ET.experiment(n.nodes, 10, g.sim.mat, theta.ET.actual, debug=F)
+
+
+
 
