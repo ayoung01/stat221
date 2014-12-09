@@ -83,12 +83,14 @@ ERGM.ET.filter.degenerates = function(G.samples) {
 Bartz.ET.experiment = function(n.nodes = 100, n.samples = 1000) {
   theta.actual = as.matrix(rnorm(2, -1, 1))
   G.samples = ERGM.ET.generate.samples(n.nodes, n.samples, theta.actual)
+  print(sprintf("Num samples before: ", length(G.samples)))
   G.samples = ERGM.ET.filter.degenerates(G.samples)
+  print(sprintf("Num samples after: ", length(G.samples)))
   
   theta_0 = as.matrix(c(-0.1,-0.1))
   n.samples.per.iter = 1
-  res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.triad.ss, 
-                        simple.learning.rate, n.samples.per.iter, ERGM.triad.ss.diff)
+  res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ERGM.ET.ss, 
+                        simple.learning.rate, n.samples.per.iter, ERGM.ET.ss.diff)
 }
 
 Bartz.triad.experiment = function(n.nodes = 100, n.samples = 1000) {
@@ -104,10 +106,10 @@ Bartz.triad.experiment = function(n.nodes = 100, n.samples = 1000) {
                         simple.learning.rate, n.samples.per.iter, ERGM.triad.ss.diff)
 } 
 
-n.nodes = 18
+n.nodes = 50
 n.samples = 1000
 #Bartz.triad.experiment(n.nodes, n.samples)
-Bartz.ET.experiment(n.nodes, n.samples)
+res = Bartz.ET.experiment(n.nodes, n.samples)
 
 
 
