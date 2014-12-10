@@ -33,7 +33,7 @@ MCMC.test = function(n.iters = 1000, theta = -0.9, n.nodes = 18, n.samples = 3) 
   for( i in 1:n.iters) {
     G.data[[i]] = Toulis.generate.graph(n, theta)
   }
-  
+
   G.samples = vector("list", n.iters)
   G.samples[[1]] = ERGM.MCMC.fast( G_0, as.matrix(theta), ERGM.edges.ss, ERGM.edges.ss.diff, n**3 )
   for( i in 2:n.iters ) {
@@ -49,11 +49,11 @@ Toulis.Bernoulli.Experiment = function(n.iters = 10000, theta = -0.9, n.nodes = 
   for(i in 1:n.iters) {
     G.data[[i]] = Toulis.generate.graph(n.nodes, theta)
   }
-  
+
   theta_0 = as.matrix(-0.1)
   start = proc.time()
   G_0 = generate.random.graph(n.nodes, 0.5)
-  res = SGD.Monte.Carlo(G.data, G_0, theta_0, ERGM.edges.ss, function(x) parameter.learning.rate( x, 5), n.samples, ERGM.edges.ss.diff)
+  res = SGD.Monte.Carlo(G.data, G_0, theta_0, ERGM.edges.ss, function(x) parameter.lr( x, 5), n.samples, ERGM.edges.ss.diff)
   end = proc.time()
   print( end - start )
   return(res)
