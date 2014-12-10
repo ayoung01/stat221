@@ -66,11 +66,11 @@ ERGM.twostars = function( G ) {
 }
 
 ERGM.edges.diff = function(G, edge) {
-  res = 1
+  r1 = 1
   if(G[edge[1],edge[2]] == 1) {
-    res = -res
+    r1 = -r1
   }
-  return(res)
+  return(r1)
 }
 
 ERGM.triangles.diff = function(G, edge) {
@@ -145,11 +145,23 @@ ERGM.triad.generate.samples = function(n.nodes, n.samples, theta.actual) {
   return(G.samples)
 }
 
-ERGM.ET.generate.samples = function(n.nodes, n.samples, theta, use.pkg=T) {
+ERGM.generate.samples = function(n.nodes, n.samples, theta, use.pkg=T, model='ET') {
   if (use.pkg) {
-    G.samples = simulate(network(n.nodes, directed=F) ~ edges + triangles, nsim=n.samples, coef=theta, sequential=F)
+    if (model=='ET') {
+      G.samples = simulate(network(n.nodes, directed=F) ~ edges + triangles, nsim=n.samples, coef=theta, sequential=F)
+    }
+    if (model=='triad') {
+      G.samples = simulate(network(n.nodes, directed=F) ~ edges + triangles + twopath, nsim=n.samples, coef=theta, sequential=F)
+    }
+    if (model=='edges') {
+      net = formula('network(n.nodes, directed=F) ~ edges')
+      theta.tmp = theta
+      nsim.tmp = n.samples
+      G.samples = simulate(net, nsim=nsim.tmp, coef=theta.tmp, sequential=F)
+    }
     G.samples = lapply(G.samples, as.matrix)
   }
+  # use our own broken method
   else {
     G_0 = generate.random.graph(n.nodes, 0.5)
     G.samples = vector("list", n.samples)
@@ -173,16 +185,18 @@ avg.over.list = function( l ) {
 
 #TODO: How to choose G_0 and C?
 SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, lr, n.draws = 1,
-                           ss.diff = NULL, use.pkg=T, debug=F) {
+                           ss.diff = NULL, use.pkg=F, debug=F, verbose=F, model) {
   n.nodes = ncol(G_0)
   n.iters = length(G.data)
   thetas = vector("list", n.iters)
   thetas[[1]] = theta_0
   pb <- txtProgressBar(min = 0, max = n.iters, style = 3)
+  # Fisher information = variance of ss
+  Fisher.hat = diag(nrow(theta_0))
   for( i in 2:n.iters ) {
     a = lr(i)
     if (use.pkg) {
-      G.samples = ERGM.ET.generate.samples(n.nodes, n.draws, thetas[[i-1]], use.pkg=T)
+      G.samples = ERGM.generate.samples(n.nodes, n.draws, thetas[[i-1]], use.pkg=T, model=model)
     } else {
       G.samples = vector("list", n.draws)
       for( j in 1:n.draws) {
@@ -199,16 +213,21 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, lr, n.draws = 1,
     if (debug){
       browser()
     }
-    # calculate condition matrix
-    Fisher.hat = cov(t(ss.mat))
+    if(nrow(ss.mat) == 1) {
+      Fisher.hat = diag(1)
+    } else {
+      Fisher.hat = 0.6 * Fisher.hat + 0.4 * cov(t(ss.mat))
+    }
     C = solve(Fisher.hat)
-
     s.avg = avg.over.list(ss.list)
-
-    # condition matrix should be inverse of Fisher information
-    # Fisher information = variance of ss
-    # can run separate SGD on Fisher information
     thetas[[i]] = thetas[[i-1]] + a*C%*%( (ss(G.data[[i]])- s.avg) )
+
+    if (verbose) {
+      print('theta_'%+%(i-1))
+      print(thetas[[i-1]])
+      print('theta_'%+%i)
+      print(thetas[[i]])
+    }
     setTxtProgressBar(pb, i)
   }
   close(pb)

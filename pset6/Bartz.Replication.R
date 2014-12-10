@@ -53,41 +53,58 @@ ERGM.ET.filter.degenerates = function(G.samples) {
 }
 
 Bartz.experiment = function(n.nodes=100, n.samples=1000, n.draws=10, G.samples, theta_0=as.matrix(c(-0.1,-0.1)),
-                               theta.actual, ss, ss.diff, lr, use.pkg=T, debug=F) {
+                               theta.actual, ss, ss.diff, lr, use.pkg=T, debug=F, verbose=F, model) {
   res = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta_0, ss,
-                        lr, n.draws, ss.diff, use.pkg=use.pkg, debug=debug)
+                        lr, n.draws, ss.diff, use.pkg=use.pkg, debug=debug, verbose, model)
   print('Actual theta: '%+%theta.actual)
   print('Predicted theta: '%+%res[[n.samples]])
   return(res)
 }
 
-n.nodes = 50
+n.nodes = 25
 n.samples = 100
-
-
-
-
 
 # ET ----------------------------------------------------------------------
 
-# theta.ET.actual = as.matrix(rnorm(2, -1, 1))
+theta.ET.actual = as.matrix(rnorm(2, -1, 1))
+print(theta.ET.actual)
+# theta.ET.working = theta.ET.actual
 theta0.ET = as.matrix(c(0,0))
-init.ET.G = ERGM.ET.generate.samples(n.nodes, n.samples, theta.ET.actual, use.pkg=T)
+init.ET.G = ERGM.generate.samples(n.nodes, n.samples, theta.ET.actual, use.pkg=T, model='ET')
 init.ET.G.filtered = ERGM.ET.filter.degenerates(init.ET.G)
-ET.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.ET.G, theta_0, theta.ET.actual,
-                       ss=ERGM.ET.ss, ss.diff=ERGM.ET.ss.diff, lr=simple.lr, use.pkg=F, debug=F)
+ET.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.ET.G.filtered, theta_0, theta.ET.actual,
+                       ss=ERGM.ET.ss, ss.diff=ERGM.ET.ss.diff, lr=simple.lr, use.pkg=F, debug=F, verbose=T, model='ET')
 
+# look at graph statistics
+ET.edges = sapply(init.ET.G, ERGM.edges)
+ET.triangles = sapply(init.ET.G, ERGM.triangles)
+ET.twostars = sapply(init.ET.G, ERGM.twostars)
 
+print(table(ET.edges))
+print(table(ET.triangles))
+print(table(ET.twostars))
 
-plot(1:length(unlist(res)), unlist(res))
+plot(1:length(unlist(ET.res)), unlist(ET.res))
 
 # triad -------------------------------------------------------------------
 
-theta.triad.actual = as.matrix(rnorm(3, -1, 1))
-theta0.triad = as.matrix(c(0,0,0))
-init.triad.G = ERGM.ET.generate.samples(n.nodes, n.samples, theta.ET.actual, use.pkg=T)
+theta.triad.actual = as.matrix(rnorm(3, 0, 1))
+theta0.triad = as.matrix(c(-1.69,0,0))
+init.triad.G = ERGM.generate.samples(n.nodes, n.samples, theta.triad.actual, use.pkg=T, model='triad')
 
-triad.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.ET.G, theta_0, theta.ET.actual,
-                             ss=ERGM.triad.ss, ss.diff=ERGM.triad.ss.diff, lr=simple.lr, use.pkg=F, debug=F)
+# look at graph statistics
+triad.edges = sapply(init.triad.G, ERGM.edges)
+triad.triangles = sapply(init.triad.G, ERGM.triangles)
+triad.twostars = sapply(init.triad.G, ERGM.twostars)
 
+# filter out graphs with zero triangles
+# notriangles = which(triad.triangles==0)
+# init.triad.G.filtered = init.triad.G[-notriangles]
+
+# print(sprintf('Edges: %s, Triangles: %s, Two-stars: %s', triad.edges))
+
+
+triad.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.triad.G, theta0.triad, theta.triad.actual,
+                             ss=ERGM.triad.ss, ss.diff=ERGM.triad.ss.diff, lr=simple.lr, use.pkg=F, debug=F, verbose=T, model='triad')
+plot(1:length(unlist(triad.res)), unlist(triad.res))
 

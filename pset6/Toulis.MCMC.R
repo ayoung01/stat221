@@ -6,9 +6,6 @@ ERGM.edges.ss = function( G ) {
 
 ERGM.edges.ss.diff = function( G, edge ) {
   res = ERGM.edges.diff(G, edge)
-  if(G[edge[1],edge[2]] == 1) {
-    res = -1*res
-  }
   return(as.matrix(res))
 }
 
@@ -44,19 +41,20 @@ MCMC.test = function(n.iters = 1000, theta = -0.9, n.nodes = 18, n.samples = 3) 
 
 #MCMC.test()
 
-Toulis.Bernoulli.Experiment = function(n.iters = 10000, theta = -0.9, n.nodes = 18, n.samples = 1) {
+Toulis.Bernoulli.Experiment = function(n.iters = 10000, theta = -0.9, n.nodes = 18, n.samples = 2) {
   G.data = vector("list", n.iters)
   for(i in 1:n.iters) {
     G.data[[i]] = Toulis.generate.graph(n.nodes, theta)
   }
 
+  x = ERGM.generate.samples(n.nodes, n.samples, theta, use.pkg=T, model='edges')
   theta_0 = as.matrix(-0.1)
   start = proc.time()
   G_0 = generate.random.graph(n.nodes, 0.5)
-  res = SGD.Monte.Carlo(G.data, G_0, theta_0, ERGM.edges.ss, function(x) parameter.lr( x, 5), n.samples, ERGM.edges.ss.diff)
+  res = SGD.Monte.Carlo(G.data, G_0, theta_0, ERGM.edges.ss, function(x) parameter.lr( x, 5), n.samples, ERGM.edges.ss.diff,
+                        use.pkg=T, debug=F, verbose=F, model="edges")
   end = proc.time()
   print( end - start )
   return(res)
 }
-
 res = Toulis.Bernoulli.Experiment()
