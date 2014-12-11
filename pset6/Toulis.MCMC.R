@@ -32,9 +32,9 @@ MCMC.test = function(n.iters = 1000, theta = -0.9, n.nodes = 18, n.samples = 3) 
   }
 
   G.samples = vector("list", n.iters)
-  G.samples[[1]] = ERGM.MCMC.fast( G_0, as.matrix(theta), ERGM.edges.ss, ERGM.edges.ss.diff, n**3 )
+  G.samples[[1]] = ERGM.MCMC( G_0, as.matrix(theta), ERGM.edges.ss, ERGM.edges.ss.diff, n**3 )
   for( i in 2:n.iters ) {
-    G.samples[[i]] = ERGM.MCMC.fast( G.samples[[i-1]], as.matrix(theta), ERGM.edges.ss, ERGM.edges.ss.diff, n*(n-1) )
+    G.samples[[i]] = ERGM.MCMC( G.samples[[i-1]], as.matrix(theta), ERGM.edges.ss, ERGM.edges.ss.diff, n*(n-1) )
   }
   graph.generating.sanity(G.data, G.samples)
 }
