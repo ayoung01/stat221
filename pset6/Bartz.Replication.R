@@ -61,8 +61,8 @@ Bartz.experiment = function(n.nodes=100, n.samples=1000, n.draws=10, G.samples, 
   return(res)
 }
 
-n.nodes = 25
-n.samples = 100
+n.nodes = 20
+n.samples = 1000
 
 # ET ----------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ print(theta.ET.actual)
 theta0.ET = as.matrix(c(0,0))
 init.ET.G = ERGM.generate.samples(n.nodes, n.samples, theta.ET.actual, use.pkg=T, model='ET')
 init.ET.G.filtered = ERGM.ET.filter.degenerates(init.ET.G)
-ET.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.ET.G.filtered, theta_0, theta.ET.actual,
+ET.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.ET.G.filtered, theta0.ET, theta.ET.actual,
                        ss=ERGM.ET.ss, ss.diff=ERGM.ET.ss.diff, lr=simple.lr, use.pkg=F, debug=F, verbose=T, model='ET')
 
 # look at graph statistics
@@ -89,7 +89,7 @@ plot(1:length(unlist(ET.res)), unlist(ET.res))
 # triad -------------------------------------------------------------------
 
 theta.triad.actual = as.matrix(rnorm(3, 0, 1))
-theta0.triad = as.matrix(c(-1.69,0,0))
+theta0.triad = as.matrix(c(0,0,0))
 init.triad.G = ERGM.generate.samples(n.nodes, n.samples, theta.triad.actual, use.pkg=T, model='triad')
 
 # look at graph statistics
@@ -102,7 +102,8 @@ triad.twostars = sapply(init.triad.G, ERGM.twostars)
 # init.triad.G.filtered = init.triad.G[-notriangles]
 
 # print(sprintf('Edges: %s, Triangles: %s, Two-stars: %s', triad.edges))
-
+#triad.log.probs = lapply( init.triad.G, function (x) ERGM.log.prob(x, theta.triad.actual, ERGM.triad.ss))
+#sum(unlist(triad.log.probs))
 
 triad.res = Bartz.experiment(n.nodes, n.samples, n.draws=10, init.triad.G, theta0.triad, theta.triad.actual,
                              ss=ERGM.triad.ss, ss.diff=ERGM.triad.ss.diff, lr=simple.lr, use.pkg=F, debug=F, verbose=T, model='triad')

@@ -148,16 +148,16 @@ ERGM.triad.generate.samples = function(n.nodes, n.samples, theta.actual) {
 ERGM.generate.samples = function(n.nodes, n.samples, theta, use.pkg=T, model='ET') {
   if (use.pkg) {
     if (model=='ET') {
-      G.samples = simulate(network(n.nodes, directed=F) ~ edges + triangles, nsim=n.samples, coef=theta, sequential=F)
+      net = formula('network(n.nodes, directed=F) ~ edges + triangles')
+      G.samples = simulate(net, nsim=n.samples, coef=theta, sequential=F)
     }
     if (model=='triad') {
-      G.samples = simulate(network(n.nodes, directed=F) ~ edges + triangles + twopath, nsim=n.samples, coef=theta, sequential=F)
+      net = formula('network(n.nodes, directed=F) ~ edges + triangles + twopath')
+      G.samples = simulate(net, nsim=n.samples, coef=theta, sequential=F)
     }
     if (model=='edges') {
       net = formula('network(n.nodes, directed=F) ~ edges')
-      theta.tmp = theta
-      nsim.tmp = n.samples
-      G.samples = simulate(net, nsim=nsim.tmp, coef=theta.tmp, sequential=F)
+      G.samples = simulate(net, nsim=n.samples, coef=theta, sequential=F)
     }
     G.samples = lapply(G.samples, as.matrix)
   }
@@ -216,7 +216,7 @@ SGD.Monte.Carlo = function(G.data, G_0, theta_0, ss, lr, n.draws = 1,
     if(nrow(ss.mat) == 1) {
       Fisher.hat = diag(1)
     } else {
-      Fisher.hat = 0.6 * Fisher.hat + 0.4 * cov(t(ss.mat))
+      Fisher.hat = 0.2 * Fisher.hat + 0.8 * cov(t(ss.mat))
     }
     C = solve(Fisher.hat)
     s.avg = avg.over.list(ss.list)
