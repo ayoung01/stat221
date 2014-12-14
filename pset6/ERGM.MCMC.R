@@ -85,6 +85,38 @@ ERGM.twostars.diff = function(G, edge) {
 
 # Bartz -------------------------------------------------------------------
 
+Bartz.experiment = function(G.samples, theta.actual, theta0, verbose=F, n.reps=25, model) {
+  n.samples = length(G.samples)
+  if (verbose) {
+    # look at graph statistics
+    edges = sapply(G.samples, ERGM.edges)
+    triangles = sapply(G.samples, ERGM.triangles)
+    twostars = sapply(G.samples, ERGM.twostars)
+
+    print(table(edges))
+    print(table(triangles))
+    print(table(twostars))
+  }
+  if (model=='ET') {
+    ss = ERGM.ET.ss
+    ss.diff = ERGM.ET.ss.diff
+  }
+  if (model=='triad') {
+    ss = ERGM.triad.ss
+    ss.diff = ERGM.triad.ss.diff
+  }
+
+  res = list()
+  for (i in 1:n.reps) {
+    res[[i]] = SGD.Monte.Carlo(G.samples, G.samples[[1]], theta0, ss,
+                               function(i) (1/(5+i)), n.draws=10, ss.diff, use.pkg=T,
+                               debug=F, verbose=verbose, model=model)
+    print('Actual theta: '%+%theta.actual)
+    print('Predicted theta: '%+%res[[i]][[n.samples]])
+    plot(1:length(unlist(res[[i]])), unlist(res[[i]]))
+  }
+}
+
 ERGM.triad.ss = function( G) {
   res = numeric(3)
   res[1] = ERGM.edges(G)
@@ -211,6 +243,36 @@ ERGM.MCMC = function( G_0, theta_0, ss, ss.diff, n_iters = ncol(G_0)*(ncol(G_0)-
   return(graph.old)
 }
 
+ERGM.generate.samples = function(n.nodes, n.samples, theta, use.pkg=T, model='ET') {
+  if (use.pkg) {
+    if (model=='ET') {
+      net = formula('network(n.nodes, directed=F) ~ edges + triangles')
+      G.samples = simulate(net, nsim=n.samples, coef=theta, sequential=F)
+    }
+    if (model=='triad') {
+      net = formula('network(n.nodes, directed=F) ~ edges + triangles + twopath')
+      G.samples = simulate(net, nsim=n.samples, coef=theta, sequential=F)
+    }
+    if (model=='edges') {
+      net = formula('network(n.nodes, directed=F) ~ edges')
+      G.samples = simulate(net, nsim=n.samples, coef=theta, sequential=F)
+    }
+    G.samples = lapply(G.samples, as.matrix)
+  }
+  # use our own broken method
+  else {
+    G_0 = generate.random.graph(n.nodes, 0.5)
+    G.samples = vector("list", n.samples)
+
+    #let markov chain mix a lot for first sample
+    G.samples[[1]] = ERGM.MCMC.fast( G_0, theta, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**3 )
+    for( i in 2:n.samples) {
+      G.samples[[i]] = ERGM.MCMC.fast( G.samples[[i-1]], theta, ERGM.ET.ss, ERGM.ET.ss.diff, n.nodes**2 )
+    }
+  }
+  return(G.samples)
+}
+
 #n = number of nodes, p= probability of particular edge existing
 generate.random.graph = function(n, p) {
   x = matrix(0, n, n)
@@ -261,4 +323,74 @@ simple.lr = function( i ) {
 
 parameter.lr = function( i, a = 1) {
   return(a/i)
+}
+
+# Functions to calculate and plot MSE -------------------------------------
+
+mse = function(sim, obs) {
+  return(sum((sim - obs)^2) / length(sim))
+}
+
+get.pred.thetas = function(res) {
+  t(do.call(cbind, lapply(res, function(l) {
+    # get last parameter for each theta chain
+    l[[length(l)]]
+  })))
+}
+
+get.first.thetas = function(res, n.iters=NULL) {
+  if (is.null(n.iters)) {
+    n.iters = length(res[[1]]) - 1
+  }
+  p = nrow(res[[1]][[1]])
+  thetas = do.call(cbind, lapply(res, function(l) {
+    # get first 5 parameter iterations for each theta chain
+    x = l[[2]]
+    for (i in 3:(n.iters+1)) {
+      x = cbind(x, l[[i]])
+    }
+    return(t(x))
+  }))
+  ans = vector('list', p)
+  for (i in 1:p) {
+    ans[[i]] = thetas[, seq(i, ncol(thetas), p)]
+  }
+  return(ans)
+}
+
+get.mse.var = function(thetas, theta.names=c('edges','triangles')) {
+  n.iters = nrow(thetas[[1]])
+  p = length(ET.first.thetas)
+  stats = data.frame()
+  for (i in 1:p) {
+    thetas = ET.first.thetas[[i]]
+    mses = numeric(n.iters)
+    variances = numeric(n.iters)
+    for (j in 1:n.iters) {
+      mses[j] = mse(thetas[j, ], theta.ET.actual[i])/mse(thetas[1, ], theta.ET.actual[i])
+      variances[j] = var(thetas[j, ])/var(thetas[1, ])
+    }
+    stats = rbind(stats, cbind(matrix(mses), matrix(1:n.iters), 'MSE', theta.names[i]))
+    stats = rbind(stats, cbind(matrix(variances), matrix(1:n.iters), 'variance', theta.names[i]))
+  }
+  colnames(stats) = c('ratio', 'iteration', 'stat', 'theta')
+  stats$theta = as.factor(stats$theta)
+  stats$stat = as.factor(stats$stat)
+  stats$iteration = as.numeric(stats$iteration)
+  stats$ratio = as.numeric(stats$ratio)
+  return(stats)
+}
+
+plot.var = function(res) {
+  first.10.thetas = get.first.thetas(res, n.iters=10)
+  stats.10 = get.mse.var(first.10.thetas)
+
+  first.thetas = get.first.thetas(res)
+  stats = get.mse.var(first.thetas)
+
+  p = ggplot(stats.10, aes(x=iteration, y=ratio, colour=stat)) + ylim(c(0, 1)) + scale_x_discrete(1:10)
+  p + geom_line() + facet_grid(. ~ theta) + ggtitle('Variance of parameter estimates by iteration for ET model')
+
+  p = ggplot(stats, aes(x=iteration, y=ratio, colour=stat)) + ylim(c(0, 1))
+  p + geom_line() + facet_grid(. ~ theta) + ggtitle('Variance of parameter estimates by iteration for ET model')
 }
