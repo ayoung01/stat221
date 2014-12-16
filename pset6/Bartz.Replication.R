@@ -16,17 +16,15 @@ theta0.ET = as.matrix(c(0,0))
 G.ET.samples = ERGM.generate.samples(n.nodes, n.samples, theta.ET.actual, use.pkg=T, model='ET')
 # G.ET.samples.filtered = ERGM.ET.filter.degenerates(G.ET.samples)
 
-ET.res = Bartz.experiment(G.ET.samples, theta.ET.actual, theta0.ET, verbose=T, n.reps=1, model='ET')
-
+ET.res = Bartz.experiment(G.ET.samples, theta.ET.actual, theta0.ET, verbose=F, n.reps, model='ET')
+plot.var(ET.res, theta.ET.actual)
 
 # triad -------------------------------------------------------------------
 
-theta.triad.actual = as.matrix(rnorm(3, -1, 1))
-theta0.triad = as.matrix(c(-1,-1,-1))
+# theta.triad.actual = as.matrix(rnorm(3, -1, 1))
+theta.triad.actual = c(-.5, 0.1, -0.25)
+theta0.triad = as.matrix(c(0,0,0))
 G.triad.samples = ERGM.generate.samples(n.nodes, n.samples, theta.triad.actual, use.pkg=T, model='triad')
 
-triad.res = Bartz.experiment(G.triad.samples, theta.triad.actual, theta0.triad, verbose=T, n.reps=1, model='triad')
-
-# Calculate MSE -----------------------------------------------------------
-
-plot.var(ET.res)
+triad.res = Bartz.experiment(G.triad.samples, theta.triad.actual, theta0.triad, verbose=F, n.reps, model='triad')
+plot.var(triad.res, theta.triad.actual, model='triad', ylim=c(0,10))

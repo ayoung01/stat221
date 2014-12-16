@@ -115,6 +115,7 @@ Bartz.experiment = function(G.samples, theta.actual, theta0, verbose=F, n.reps=2
     print('Predicted theta: '%+%res[[i]][[n.samples]])
     plot(1:length(unlist(res[[i]])), unlist(res[[i]]))
   }
+  return(res)
 }
 
 ERGM.triad.ss = function( G) {
@@ -358,16 +359,16 @@ get.first.thetas = function(res, n.iters=NULL) {
   return(ans)
 }
 
-get.mse.var = function(thetas, theta.names=c('edges','triangles')) {
-  n.iters = nrow(thetas[[1]])
-  p = length(ET.first.thetas)
+get.mse.var = function(thetas_list, theta.actual, theta.names=c('edges','triangles')) {
+  n.iters = nrow(thetas_list[[1]])
+  p = length(thetas_list)
   stats = data.frame()
   for (i in 1:p) {
-    thetas = ET.first.thetas[[i]]
+    thetas = thetas_list[[i]]
     mses = numeric(n.iters)
     variances = numeric(n.iters)
     for (j in 1:n.iters) {
-      mses[j] = mse(thetas[j, ], theta.ET.actual[i])/mse(thetas[1, ], theta.ET.actual[i])
+      mses[j] = mse(thetas[j, ], theta.actual[i])/mse(thetas[1, ], theta.actual[i])
       variances[j] = var(thetas[j, ])/var(thetas[1, ])
     }
     stats = rbind(stats, cbind(matrix(mses), matrix(1:n.iters), 'MSE', theta.names[i]))
@@ -381,16 +382,22 @@ get.mse.var = function(thetas, theta.names=c('edges','triangles')) {
   return(stats)
 }
 
-plot.var = function(res) {
+plot.var = function(res, theta.actual, model='ET', ylim=c(0,1)) {
+  theta.names = c('edges', 'triangles')
+  if (model=='triad') {
+    theta.names = c('edges', 'triangles', 'twostar')
+  }
   first.10.thetas = get.first.thetas(res, n.iters=10)
-  stats.10 = get.mse.var(first.10.thetas)
+  stats.10 = get.mse.var(first.10.thetas, theta.actual, theta.names)
 
   first.thetas = get.first.thetas(res)
-  stats = get.mse.var(first.thetas)
+  stats = get.mse.var(first.thetas, theta.actual, theta.names)
 
-  p = ggplot(stats.10, aes(x=iteration, y=ratio, colour=stat)) + ylim(c(0, 1)) + scale_x_discrete(1:10)
-  p + geom_line() + facet_grid(. ~ theta) + ggtitle('Variance of parameter estimates by iteration for ET model')
+  p = ggplot(stats.10, aes(x=iteration, y=ratio, colour=stat)) + ylim(ylim) + scale_x_discrete(1:9)
+  p + geom_line() + facet_grid(. ~ theta) +
+    ggtitle(sprintf('Variance of parameter estimates by iteration for %s model', model))
 
-  p = ggplot(stats, aes(x=iteration, y=ratio, colour=stat)) + ylim(c(0, 1))
-  p + geom_line() + facet_grid(. ~ theta) + ggtitle('Variance of parameter estimates by iteration for ET model')
+  p = ggplot(stats, aes(x=iteration, y=ratio, colour=stat)) + ylim(ylim)
+  p + geom_line() + facet_grid(. ~ theta) +
+    ggtitle(sprintf('Variance of parameter estimates by iteration for %s model', model))
 }
