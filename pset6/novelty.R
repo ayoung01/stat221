@@ -29,39 +29,11 @@ library(igraph)
 karate = read.graph('karate/karate.gml', format='gml')
 plot(karate)
 karate = get.adjacency(karate, sparse=F)
-
-n.iter = 1000
-theta0.ET = as.matrix(c(-1,-1))
-
-init.ET.G = vector('list', n.iter)
-for (i in 1:n.iter) {
-  init.ET.G[[i]] = karate
-}
-
-ET.res = SGD.Monte.Carlo(init.ET.G, init.ET.G[[1]], theta0.ET, ERGM.ET.ss,
-                         function(i) (1/(i)), n.draws=50, ERGM.ET.ss.diff, use.pkg=T, debug=F, verbose=T, model='ET')
-print('Predicted theta: '%+%ET.res[[n.samples]])
-
-plot(1:length(unlist(ET.res)), unlist(ET.res))
+karate.ET.ergm = ergm(karate~ edges + triangles)
+karate.triad.ergm = ergm(karate~ edges + triangles + twopath)
 
 
-sample.subnetworks = function(g, n.samples, n.nodes) {
-  stopifnot (n.nodes < nrow(g))
-  samples = list()
-  for (i in 1:n.samples) {
-    g.samp = g
-
-    rows = sample(1:nrow(g), n.nodes, replace = F)
-    comp = (1:nrow(g))[!(1:nrow(g) %in% rows)]
-
-    g.samp[comp, ] = NA
-    g.samp[, comp] = NA
-    g.samp = g.samp[rowSums(is.na(g.samp)) != ncol(g.samp),]
-    g.samp = g.samp[, colSums(is.na(g.samp)) != nrow(g.samp)]
-    samples[[i]] = g.samp
-  }
-  return(samples)
-}
+# Run experiments ---------------------------------------------------------
 
 n.nodes = 20
 n.samples = 1000
@@ -87,7 +59,7 @@ p + ggtitle('Predicted theta by iteration for ET model')
 
 
 # fit triad model
-karate.theta0.triad = as.matrix(c(-1, -1, -1))
+karate.theta0.triad = as.matrix(c(-1, 1, -1))
 karate.triad.res = SGD.Monte.Carlo(karate.samples, karate.samples[[1]], karate.theta0.triad, ERGM.triad.ss,
                                 function(i) (1/(50+i)), n.draws=10, ERGM.triad.ss.diff, use.pkg=T, debug=F, verbose=T, model='triad')
 print('Predicted theta: '%+%karate.triad.res[[n.samples]])

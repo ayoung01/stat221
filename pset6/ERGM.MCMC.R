@@ -1,5 +1,7 @@
 library(ergm)
-
+library(igraph)
+library(ggplot2)
+library(data.table)
 
 # Graph statistics --------------------------------------------------------
 
@@ -305,6 +307,24 @@ propose.edge = function( G ) {
   return( sample(1:n_vertices, 2))
 }
 
+sample.subnetworks = function(g, n.samples, n.nodes) {
+  stopifnot (n.nodes < nrow(g))
+  samples = list()
+  for (i in 1:n.samples) {
+    g.samp = g
+
+    rows = sample(1:nrow(g), n.nodes, replace = F)
+    comp = (1:nrow(g))[!(1:nrow(g) %in% rows)]
+
+    g.samp[comp, ] = NA
+    g.samp[, comp] = NA
+    g.samp = g.samp[rowSums(is.na(g.samp)) != ncol(g.samp),]
+    g.samp = g.samp[, colSums(is.na(g.samp)) != nrow(g.samp)]
+    samples[[i]] = g.samp
+  }
+  return(samples)
+}
+
 # General utility functions -----------------------------------------------
 
 `%+%` <- function (x, y) {
@@ -322,8 +342,8 @@ simple.lr = function( i ) {
   return(1/i)
 }
 
-parameter.lr = function( i, a = 1) {
-  return(a/i)
+parameter.lr = function( i, a = 1, b=0) {
+  return(a/(b+i))
 }
 
 # Functions to calculate and plot MSE -------------------------------------

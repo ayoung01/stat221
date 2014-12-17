@@ -39,22 +39,37 @@ MCMC.test = function(n.iters = 1000, theta = -0.9, n.nodes = 18, n.samples = 3) 
   graph.generating.sanity(G.data, G.samples)
 }
 
-#MCMC.test()
+Toulis.Bernoulli.Experiment = function(n.iters=1000, theta = -0.9, n.nodes = 18, n.samples = 2) {
+  l = list()
+  learning.rates = c(200,50,10,5,1.67)
+  for (a in learning.rates) {
+    G.data = vector("list", n.iters)
+    for(i in 1:n.iters) {
+      G.data[[i]] = Toulis.generate.graph(n.nodes, theta)
+    }
 
-Toulis.Bernoulli.Experiment = function(n.iters = 10000, theta = -0.9, n.nodes = 18, n.samples = 2) {
-  G.data = vector("list", n.iters)
-  for(i in 1:n.iters) {
-    G.data[[i]] = Toulis.generate.graph(n.nodes, theta)
+    theta_0 = as.matrix(-0.1)
+    start = proc.time()
+    G_0 = generate.random.graph(n.nodes, 0.5)
+    res = SGD.Monte.Carlo(G.data, G_0, theta_0, ERGM.edges.ss, function(x) parameter.lr( x, a), n.samples, ERGM.edges.ss.diff,
+                          use.pkg=T, debug=F, verbose=F, model="edges")
+    end = proc.time()
+    print( end - start )
+    l[[as.character(a)]] = unlist(res)
   }
-
-  x = ERGM.generate.samples(n.nodes, n.samples, theta, use.pkg=T, model='edges')
-  theta_0 = as.matrix(-0.1)
-  start = proc.time()
-  G_0 = generate.random.graph(n.nodes, 0.5)
-  res = SGD.Monte.Carlo(G.data, G_0, theta_0, ERGM.edges.ss, function(x) parameter.lr( x, 5), n.samples, ERGM.edges.ss.diff,
-                        use.pkg=T, debug=F, verbose=F, model="edges")
-  end = proc.time()
-  print( end - start )
-  return(res)
+  d = rbindlist(list(l))
+  colnames(d) = as.character(learning.rates)
+  return(data.frame(d))
 }
-res = Toulis.Bernoulli.Experiment()
+
+n.iters=1000
+
+toulis.res = Toulis.Bernoulli.Experiment(n.iters=n.iters)
+toulis.res = stack(toulis.res)
+toulis.res$iteration = rep(1:n.iters, 5)
+colnames(toulis.res) = c('theta', 'learning_rate', 'iteration')
+toulis.res$learning_rate = factor(toulis.res$learning_rate, levels=c('X1.67', 'X5','X10','X50','X200'))
+ggplot(toulis.res, aes(x=iteration, y=theta, colour=learning_rate)) + geom_line(alpha=0.8)
+
+ggplot(toulis.res, aes(x=iteration, y=theta, colour=learning_rate)) + geom_line(alpha=0.8) + ylim(-2,0)
+
